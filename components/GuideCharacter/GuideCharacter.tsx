@@ -151,6 +151,9 @@ export default function GuideCharacter({ expression, message, size = 120 }: Guid
         animate={{ opacity: 1, scale: 1, y: 0 }}
         key={message}
         transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
       >
         <p className="font-heading text-sm text-gray-700 leading-tight text-center font-semibold">
           {message}
