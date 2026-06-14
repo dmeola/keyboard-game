@@ -17,7 +17,7 @@ export default function NumberDisplay({ entry }: NumberDisplayProps) {
   if (!entry) {
     return (
       <div className="flex items-center justify-center w-full py-8 opacity-25">
-        <span className="text-8xl select-none">✨</span>
+        <span className="text-8xl select-none" aria-hidden="true">✨</span>
       </div>
     );
   }
@@ -45,6 +45,7 @@ export default function NumberDisplay({ entry }: NumberDisplayProps) {
           >
             <motion.span
               className="select-none leading-none"
+              aria-hidden="true"
               style={{ fontSize: 'clamp(5rem, 18vw, 9rem)' }}
               animate={{ rotate: [0, -10, 10, -8, 8, 0] }}
               transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
@@ -61,8 +62,13 @@ export default function NumberDisplay({ entry }: NumberDisplayProps) {
         ) : (
           /* Staggered object animation */
           <div className="flex flex-col items-center gap-3 w-full">
+            {/* Accessible description of the count — screen reader reads this */}
+            <p className="sr-only">
+              {entry.word}: {entry.objects.length} {entry.objects.length === 1 ? 'object' : 'objects'}
+            </p>
             <motion.div
               className="flex flex-wrap items-center justify-center gap-2 md:gap-3 px-4 max-w-lg"
+              aria-hidden="true"
               initial="hidden"
               animate="visible"
               variants={{

@@ -64,10 +64,11 @@ export default function LetterImage({ entry }: LetterImageProps) {
             {entry.emoji}
           </motion.span>
 
-          {/* Floating related emojis */}
+          {/* Floating related emojis — decorative only */}
           {related.slice(0, 3).map((emoji, i) => (
             <motion.span
               key={`float-${i}`}
+              aria-hidden="true"
               className="absolute select-none pointer-events-none leading-none"
               style={{ fontSize: '2.2rem' }}
               initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
@@ -92,6 +93,7 @@ export default function LetterImage({ entry }: LetterImageProps) {
         <motion.div
           key="empty"
           className="flex items-center justify-center w-full py-8"
+          aria-hidden="true"
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.25 }}
         >

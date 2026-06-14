@@ -133,12 +133,20 @@ export default function GuideCharacter({ expression, message, size = 120 }: Guid
     return () => clearTimeout(timeout);
   }, [expression, leftEyeControls, rightEyeControls, leftEyeProps.scaleY, rightEyeProps.scaleY]);
 
-  const bodyColor = '#C8A46B';
-  const bellyColor = '#EDD8A4';
-  const eyeWhite = '#FFFFFF';
-  const pupilColor = '#1A1A2E';
-  const beakColor = '#F4A742';
-  const irisColor = expression === 'excited' ? '#29B6F6' : expression === 'celebrate' ? '#9C27B0' : '#2E86C1';
+  const bodyColor = '#8B6B3F';
+  const wingColor = '#5C3D1A';
+  const bellyColor = '#F2E0B0';
+  const facialDiscColor = '#EDD9A3';
+  const eyeRingColor = '#3D2008';
+  const eyeWhite = '#FFFEF5';
+  const pupilColor = '#0D0D18';
+  const beakColor = '#E09018';
+  const branchColor = '#7B5430';
+  // Owls have golden/amber eyes — much more owl-like than blue
+  const irisColor = expression === 'excited' ? '#FFB800'
+    : expression === 'celebrate' ? '#F4900C'
+    : expression === 'curious' ? '#D4930A'
+    : '#DAA520';
 
   const celebrateSparkles = ['⭐', '✨', '🌟', '💫'];
 
@@ -179,12 +187,14 @@ export default function GuideCharacter({ expression, message, size = 120 }: Guid
         />
       </motion.div>
 
-      {/* Pip SVG */}
+      {/* Pip SVG — purely decorative; the speech bubble above carries the message */}
       <motion.svg
         viewBox="0 0 110 140"
         width={size}
         height={size * 1.27}
         xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        focusable="false"
         animate={
           expression === 'celebrate'
             ? { rotate: [0, -8, 8, -6, 6, 0], scale: [1, 1.05, 1] }
@@ -196,88 +206,101 @@ export default function GuideCharacter({ expression, message, size = 120 }: Guid
         }
         transition={{ duration: 0.6, repeat: expression === 'celebrate' ? 2 : 0 }}
       >
-        {/* Body */}
-        <ellipse cx="55" cy="98" rx="38" ry="42" fill={bodyColor} />
+        {/* Branch to perch on */}
+        <rect x="2" y="132" width="106" height="8" rx="4" fill={branchColor} />
 
-        {/* Belly */}
-        <ellipse cx="55" cy="102" rx="24" ry="30" fill={bellyColor} />
+        {/* Talons gripping branch */}
+        <path d="M 36,132 L 33,137 M 40,132 L 40,138 M 44,132 L 47,137"
+          stroke={beakColor} strokeWidth="2.5" strokeLinecap="round" fill="none" />
+        <path d="M 63,132 L 66,137 M 70,132 L 70,138 M 74,132 L 77,137"
+          stroke={beakColor} strokeWidth="2.5" strokeLinecap="round" fill="none" />
 
-        {/* Wing left */}
+        {/* Body — plump and round */}
+        <ellipse cx="55" cy="103" rx="30" ry="33" fill={bodyColor} />
+
+        {/* Folded wing panels (darker sections on sides of body) */}
         <motion.ellipse
-          cx="20" cy="95" rx="14" ry="22"
-          fill={bodyColor}
-          style={{ transformOrigin: '20px 80px' }}
-          animate={expression === 'celebrate' ? { rotate: [-20, -40, -20] } : { rotate: -10 }}
+          cx="27" cy="107" rx="10" ry="22"
+          fill={wingColor}
+          style={{ transformOrigin: '27px 88px' }}
+          animate={expression === 'celebrate' ? { rotate: [-15, -30, -15] } : { rotate: 0 }}
           transition={{ duration: 0.6, repeat: expression === 'celebrate' ? 3 : 0 }}
         />
-        {/* Wing right */}
         <motion.ellipse
-          cx="90" cy="95" rx="14" ry="22"
-          fill={bodyColor}
-          style={{ transformOrigin: '90px 80px' }}
-          animate={expression === 'celebrate' ? { rotate: [20, 40, 20] } : { rotate: 10 }}
+          cx="83" cy="107" rx="10" ry="22"
+          fill={wingColor}
+          style={{ transformOrigin: '83px 88px' }}
+          animate={expression === 'celebrate' ? { rotate: [15, 30, 15] } : { rotate: 0 }}
           transition={{ duration: 0.6, repeat: expression === 'celebrate' ? 3 : 0 }}
         />
+
+        {/* Belly — cream with subtle feather row curves */}
+        <ellipse cx="55" cy="109" rx="19" ry="24" fill={bellyColor} />
+        <path d="M 39,100 Q 55,96 71,100" stroke={bodyColor} strokeWidth="1.5" fill="none" opacity="0.35" />
+        <path d="M 37,111 Q 55,107 73,111" stroke={bodyColor} strokeWidth="1.5" fill="none" opacity="0.35" />
+        <path d="M 39,121 Q 55,117 71,121" stroke={bodyColor} strokeWidth="1.5" fill="none" opacity="0.35" />
 
         {/* Head */}
-        <circle cx="55" cy="46" r="36" fill={bodyColor} />
+        <circle cx="55" cy="52" r="30" fill={bodyColor} />
 
-        {/* Ear tufts */}
-        <polygon points="35,16 30,4 42,13" fill={bodyColor} />
-        <polygon points="75,16 80,4 68,13" fill={bodyColor} />
-        <polygon points="35,16 30,6 40,14" fill="#A67C52" />
-        <polygon points="75,16 80,6 70,14" fill="#A67C52" />
+        {/* Ear tufts — soft rounded feather bumps */}
+        <path d="M 33,30 Q 34,17 38,11 Q 43,17 44,30" fill={bodyColor} />
+        <path d="M 66,30 Q 67,17 72,11 Q 76,17 77,30" fill={bodyColor} />
+        {/* Inner tuft shading */}
+        <path d="M 35,30 Q 36,20 38,15 Q 41,20 42,30" fill={wingColor} opacity="0.55" />
+        <path d="M 68,30 Q 69,20 72,15 Q 74,20 75,30" fill={wingColor} opacity="0.55" />
 
-        {/* Face plate (lighter) */}
-        <ellipse cx="55" cy="50" rx="26" ry="24" fill={bellyColor} />
+        {/* Facial disc — the characteristic lighter oval around the face */}
+        <ellipse cx="55" cy="54" rx="27" ry="22" fill={facialDiscColor} />
+
+        {/* Dark feather rings around eyes — the most owl-like feature */}
+        <circle cx="40" cy="52" r="13" fill={eyeRingColor} />
+        <circle cx="70" cy="52" r="13" fill={eyeRingColor} />
 
         {/* LEFT EYE */}
-        <g transform="translate(40, 44)">
-          <circle cx="0" cy={leftEyeProps.cy} r="13" fill={eyeWhite} />
+        <g transform="translate(40, 52)">
+          <circle cx="0" cy={leftEyeProps.cy} r="11" fill={eyeWhite} />
           <motion.g
             animate={leftEyeControls}
             initial={{ scaleY: leftEyeProps.scaleY }}
             style={{ transformOrigin: `0px ${leftEyeProps.cy}px` }}
           >
-            <circle cx={leftPupil.dx} cy={leftEyeProps.cy + leftPupil.dy} r="9" fill={irisColor} />
-            <circle cx={leftPupil.dx} cy={leftEyeProps.cy + leftPupil.dy} r="5" fill={pupilColor} />
-            <circle cx={leftPupil.dx + 2} cy={leftEyeProps.cy + leftPupil.dy - 2} r="2" fill="white" opacity="0.8" />
+            <circle cx={leftPupil.dx} cy={leftEyeProps.cy + leftPupil.dy} r="7" fill={irisColor} />
+            <circle cx={leftPupil.dx} cy={leftEyeProps.cy + leftPupil.dy} r="4" fill={pupilColor} />
+            <circle cx={leftPupil.dx + 2} cy={leftEyeProps.cy + leftPupil.dy - 2} r="1.5" fill="white" opacity="0.85" />
           </motion.g>
-          {/* Eyelid line for happy/celebrate */}
           {(expression === 'happy' || expression === 'celebrate') && (
-            <path d={`M -12 ${leftEyeProps.cy - 2} Q 0 ${leftEyeProps.cy - 14} 12 ${leftEyeProps.cy - 2}`} stroke="#A67C52" strokeWidth="2" fill="none" />
+            <path d={`M -10 ${leftEyeProps.cy - 2} Q 0 ${leftEyeProps.cy - 12} 10 ${leftEyeProps.cy - 2}`}
+              stroke={wingColor} strokeWidth="2" fill="none" />
           )}
         </g>
 
         {/* RIGHT EYE */}
-        <g transform="translate(70, 44)">
-          <circle cx="0" cy={rightEyeProps.cy} r="13" fill={eyeWhite} />
+        <g transform="translate(70, 52)">
+          <circle cx="0" cy={rightEyeProps.cy} r="11" fill={eyeWhite} />
           <motion.g
             animate={rightEyeControls}
             initial={{ scaleY: rightEyeProps.scaleY }}
             style={{ transformOrigin: `0px ${rightEyeProps.cy}px` }}
           >
-            <circle cx={rightPupil.dx} cy={rightEyeProps.cy + rightPupil.dy} r="9" fill={irisColor} />
-            <circle cx={rightPupil.dx} cy={rightEyeProps.cy + rightPupil.dy} r="5" fill={pupilColor} />
-            <circle cx={rightPupil.dx + 2} cy={rightEyeProps.cy + rightPupil.dy - 2} r="2" fill="white" opacity="0.8" />
+            <circle cx={rightPupil.dx} cy={rightEyeProps.cy + rightPupil.dy} r="7" fill={irisColor} />
+            <circle cx={rightPupil.dx} cy={rightEyeProps.cy + rightPupil.dy} r="4" fill={pupilColor} />
+            <circle cx={rightPupil.dx + 2} cy={rightEyeProps.cy + rightPupil.dy - 2} r="1.5" fill="white" opacity="0.85" />
           </motion.g>
           {(expression === 'happy' || expression === 'celebrate') && (
-            <path d={`M -12 ${rightEyeProps.cy - 2} Q 0 ${rightEyeProps.cy - 14} 12 ${rightEyeProps.cy - 2}`} stroke="#A67C52" strokeWidth="2" fill="none" />
+            <path d={`M -10 ${rightEyeProps.cy - 2} Q 0 ${rightEyeProps.cy - 12} 10 ${rightEyeProps.cy - 2}`}
+              stroke={wingColor} strokeWidth="2" fill="none" />
           )}
         </g>
 
-        {/* Curious eyebrow (right side raised) */}
+        {/* Curious eyebrow — right side raised */}
         {expression === 'curious' && (
-          <path d="M 57 28 Q 68 24 79 27" stroke="#A67C52" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path d="M 57,30 Q 68,26 79,29" stroke={wingColor} strokeWidth="2.5" fill="none" strokeLinecap="round" />
         )}
 
-        {/* Beak */}
-        <polygon points="55,59 49,68 61,68" fill={beakColor} />
-        <line x1="49" y1="64" x2="61" y2="64" stroke="#E08C30" strokeWidth="1.5" />
-
-        {/* Feet */}
-        <ellipse cx="44" cy="138" rx="9" ry="4" fill={beakColor} />
-        <ellipse cx="66" cy="138" rx="9" ry="4" fill={beakColor} />
+        {/* Beak — small hooked triangle nestled between the eyes */}
+        <polygon points="55,65 50,72 60,72" fill={beakColor} />
+        <line x1="50" y1="68.5" x2="60" y2="68.5" stroke="#C07010" strokeWidth="1.5" />
 
         {/* Celebrate sparkles */}
         {expression === 'celebrate' && celebrateSparkles.map((s, i) => (

@@ -63,7 +63,11 @@ function KeyCap({ label, isActive, pressCount, rowColor, activeShadow }: KeyCapP
         ${rowColor}
         ${isActive ? `shadow-lg ${activeShadow} scale-105 ring-2 ring-offset-1` : ''}
       `}
-      style={{ width: 36, height: 36, fontSize: 13 }}
+      style={{
+        width: 'clamp(26px, 2.6vw, 44px)',
+        height: 'clamp(26px, 2.6vw, 44px)',
+        fontSize: 'clamp(10px, 0.85vw, 14px)',
+      }}
       animate={
         isActive
           ? { scale: [1, 1.25, 1.15], boxShadow: ['0 0 0 0 rgba(0,0,0,0)', '0 0 12px 4px rgba(99,179,237,0.7)', '0 0 8px 2px rgba(99,179,237,0.4)'] }
@@ -87,10 +91,14 @@ export default function KeyboardVisual({ activeKey, masteryData }: KeyboardVisua
   const normalizedActive = activeKey?.toUpperCase() ?? null;
 
   return (
-    /* Hidden on small screens — supplemental only */
-    <div className="hidden md:flex flex-col items-center gap-1.5 px-2 py-3 bg-white/60 backdrop-blur-sm rounded-2xl shadow-inner">
+    /* Decorative keyboard visual — hidden from assistive technology */
+    <div
+      className="hidden md:flex flex-col items-center px-2 py-3 bg-white/60 backdrop-blur-sm rounded-2xl shadow-inner"
+      style={{ gap: 'clamp(4px, 0.4vw, 8px)' }}
+      aria-hidden="true"
+    >
       {ROWS.map((row, rowIdx) => (
-        <div key={rowIdx} className="flex items-center gap-1.5">
+        <div key={rowIdx} className="flex items-center" style={{ gap: 'clamp(4px, 0.4vw, 8px)' }}>
           {row.map((key) => {
             const count = masteryData[key] ?? 0;
             return (
@@ -114,7 +122,11 @@ export default function KeyboardVisual({ activeKey, masteryData }: KeyboardVisua
           text-xs text-gray-500 cursor-default select-none bg-gray-100 border-gray-300
           ${normalizedActive === ' ' || normalizedActive === 'SPACE' ? 'ring-2 ring-sky-400' : ''}
         `}
-        style={{ width: 180, height: 32, fontSize: 11 }}
+        style={{
+          width: 'clamp(120px, 13vw, 200px)',
+          height: 'clamp(24px, 2.2vw, 36px)',
+          fontSize: 'clamp(9px, 0.75vw, 12px)',
+        }}
         animate={normalizedActive === ' ' ? { scale: [1, 1.05, 1] } : { scale: 1 }}
         transition={{ duration: 0.25 }}
       >

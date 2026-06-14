@@ -26,7 +26,7 @@ import KeyboardVisual from '@/components/KeyboardVisual/KeyboardVisual';
 import SessionTimer from '@/components/SessionTimer/SessionTimer';
 
 /* ── Camera filter integration point ─────────────────────────── */
-let CameraFilterComponent: React.ComponentType<{ activeLetter: string | null }> | null = null;
+let CameraFilterComponent: React.ComponentType<{ activeLetter: string | null; isActive?: boolean }> | null = null;
 
 /* ── Confetti particle for Quest mode celebrations ────────────── */
 const CONFETTI_COLORS = ['#FF6B63', '#29B6F6', '#FDD835', '#4CAF50', '#AB47BC'];
@@ -130,11 +130,12 @@ function TouchKeyboard({ onKey }: TouchKeyboardProps) {
     <div className="md:hidden w-full px-2 pb-4" aria-label="On-screen keyboard">
       <p className="font-heading text-center text-gray-400 text-xs mb-2">Tap a letter or number!</p>
       {/* Letters */}
-      <div className="grid grid-cols-5 gap-1.5 mb-2">
+      <div className="grid grid-cols-5 gap-[clamp(4px,1.5vw,8px)] mb-2">
         {ALPHABET.map((letter, i) => (
           <motion.button
             key={letter}
-            className={`${TOUCH_KEY_COLORS[i % TOUCH_KEY_COLORS.length]} text-white font-heading font-bold text-lg rounded-xl py-2 shadow-md active:shadow-sm select-none`}
+            className={`${TOUCH_KEY_COLORS[i % TOUCH_KEY_COLORS.length]} text-white font-heading font-bold rounded-xl shadow-md active:shadow-sm select-none`}
+            style={{ fontSize: 'clamp(13px, 3.5vw, 20px)', padding: 'clamp(5px, 1.5vw, 10px) 0' }}
             whileTap={{ scale: 0.88 }}
             onClick={() => onKey(letter.toLowerCase())}
             aria-label={`Letter ${letter}`}
@@ -144,11 +145,12 @@ function TouchKeyboard({ onKey }: TouchKeyboardProps) {
         ))}
       </div>
       {/* Digits */}
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-5 gap-[clamp(4px,1.5vw,8px)]">
         {DIGITS.map((d) => (
           <motion.button
             key={d}
-            className="bg-sky-500 text-white font-heading font-bold text-lg rounded-xl py-2 shadow-md active:shadow-sm select-none"
+            className="bg-sky-500 text-white font-heading font-bold rounded-xl shadow-md active:shadow-sm select-none"
+            style={{ fontSize: 'clamp(13px, 3.5vw, 20px)', padding: 'clamp(5px, 1.5vw, 10px) 0' }}
             whileTap={{ scale: 0.88 }}
             onClick={() => onKey(d)}
             aria-label={`Number ${d}`}
@@ -353,7 +355,8 @@ function PlayPageInner() {
   const isNumber = keyType === 'number';
 
   return (
-    <motion.div
+    <motion.main
+      id="main-content"
       className="relative min-h-screen flex flex-col overflow-x-hidden overflow-y-auto"
       style={{
         background: bgTint
@@ -365,6 +368,9 @@ function PlayPageInner() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
     >
+      <h1 className="sr-only">
+        {urlMode === 'quest' ? 'KeyJr — Quest Mode' : 'KeyJr — Explorer Mode'}
+      </h1>
       {/* Confetti for quest correct */}
       <Confetti active={questCorrect} />
 
@@ -379,6 +385,7 @@ function PlayPageInner() {
           >
             <CameraFilterComponent
               activeLetter={keyType === 'letter' && activeKey ? activeKey.toUpperCase() : null}
+              isActive={cameraActive}
             />
           </motion.div>
         )}
@@ -422,7 +429,6 @@ function PlayPageInner() {
 
       {/* ── Main content ─────────────────────────────── */}
       <div className="flex-1 flex flex-col gap-3 px-3 pb-3">
-        {/* Pip + KeyDisplay row */}
         <div className="flex items-start gap-3 flex-wrap md:flex-nowrap">
           {/* Pip */}
           <div className="shrink-0 pt-2">
@@ -436,63 +442,60 @@ function PlayPageInner() {
             </AnimatePresence>
           </div>
 
-          {/* KeyDisplay — fixed min-height to prevent layout reflow */}
-          <div className="flex-1 min-h-[200px] flex items-center justify-center">
-            <KeyDisplay
-              pressedKey={activeKey}
-              entry={activeEntry}
-              keyType={keyType}
-            />
+          {/* KeyDisplay + image + keyboard — all in one column so they share the same center */}
+          <div className="flex-1 flex flex-col gap-3">
+            {/* KeyDisplay — fixed min-height to prevent layout reflow */}
+            <div className="min-h-[200px] flex items-center justify-center">
+              <KeyDisplay
+                pressedKey={activeKey}
+                entry={activeEntry}
+                keyType={keyType}
+                pressSequence={pressCount}
+              />
+            </div>
+
+            {/* Letter or number content — fixed min-height */}
+            <div className="flex items-center justify-center min-h-[180px]">
+              <AnimatePresence mode="wait">
+                {isLetter && (
+                  <motion.div key="letter-view" className="w-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <LetterImage entry={activeEntry as LetterEntry | null} />
+                  </motion.div>
+                )}
+                {isNumber && (
+                  <motion.div key="number-view" className="w-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <NumberDisplay entry={activeEntry as NumberEntry | null} />
+                  </motion.div>
+                )}
+                {!isLetter && !isNumber && (
+                  <motion.div
+                    key="idle"
+                    className="flex flex-col items-center gap-2 opacity-30"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.3 }}
+                  >
+                    <span className="text-7xl select-none" aria-hidden="true">🌟</span>
+                    <p className="font-heading text-gray-400 text-lg">Press a key!</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Keyboard visual — desktop */}
+            <div className="hidden md:flex justify-center">
+              <KeyboardVisual
+                activeKey={activeKey}
+                masteryData={masteryData}
+              />
+            </div>
           </div>
-        </div>
-
-        {/* Letter or number content — fixed min-height */}
-        <div className="flex items-center justify-center min-h-[180px]">
-          <AnimatePresence mode="wait">
-            {isLetter && (
-              <motion.div key="letter-view" className="w-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <LetterImage entry={activeEntry as LetterEntry | null} />
-              </motion.div>
-            )}
-            {isNumber && (
-              <motion.div key="number-view" className="w-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <NumberDisplay entry={activeEntry as NumberEntry | null} />
-              </motion.div>
-            )}
-            {!isLetter && !isNumber && (
-              <motion.div
-                key="idle"
-                className="flex flex-col items-center gap-2 opacity-30"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.3 }}
-              >
-                <span className="text-7xl select-none" aria-hidden="true">🌟</span>
-                <p className="font-heading text-gray-400 text-lg">Press a key!</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Keyboard visual — desktop */}
-        <div className="hidden md:flex justify-center mt-auto">
-          <KeyboardVisual
-            activeKey={activeKey}
-            masteryData={masteryData}
-          />
         </div>
 
         {/* Touch keyboard — mobile only */}
         <TouchKeyboard onKey={handleTouchKey} />
       </div>
 
-      {/* Wiggle break overlay */}
-      {wiggleShouldShow && (
-        <SessionTimer
-          pressCount={pressCount}
-          onWiggleAcknowledged={handleWiggleAck}
-        />
-      )}
-    </motion.div>
+    </motion.main>
   );
 }
 

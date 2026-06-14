@@ -47,6 +47,28 @@ export function preloadAudio(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Phoneme → TTS mapping
+// Repeated-consonant phonemes (rrr, lll, …) are read as letter names by TTS
+// engines. These "with-schwa" forms are standard phonics representations that
+// any TTS engine can pronounce as the intended consonant sound.
+// ---------------------------------------------------------------------------
+
+const PHONEME_TO_TTS: Record<string, string> = {
+  fff: 'fuh',
+  lll: 'luh',
+  nnn: 'nuh',
+  rrr: 'ruh',
+  sss: 'suh',
+  vvv: 'vuh',
+  zzz: 'zuh',
+  ksss: 'ks',
+};
+
+function toTtsPhoneme(phoneme: string): string {
+  return PHONEME_TO_TTS[phoneme] ?? phoneme;
+}
+
+// ---------------------------------------------------------------------------
 // Web Speech API fallback (used for dynamic text like Pip messages)
 // ---------------------------------------------------------------------------
 
@@ -122,7 +144,7 @@ export function speakLetter(letter: string, _entry: LetterEntry): void {
   playAudioFile(src).catch(() => {
     // Pre-generated file unavailable — fall back to synthesised speech
     const upper = letter.toUpperCase();
-    speak(`${upper}... ${_entry.phoneme} sound... ${upper} is for ${_entry.word}!`, {
+    speak(`${upper}... ${toTtsPhoneme(_entry.phoneme)} sound... ${upper} is for ${_entry.word}!`, {
       rate: 0.8,
       pitch: 1.2,
     });

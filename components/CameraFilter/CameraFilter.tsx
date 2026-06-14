@@ -53,8 +53,8 @@ export default function CameraFilter({
       return;
     }
 
-    const w = canvas.width || video.videoWidth || 640;
-    const h = canvas.height || video.videoHeight || 480;
+    const w = video.videoWidth || 640;
+    const h = video.videoHeight || 480;
     if (canvas.width !== w) canvas.width = w;
     if (canvas.height !== h) canvas.height = h;
 
@@ -102,79 +102,73 @@ export default function CameraFilter({
 
   const letterEntry = activeLetter ? letterData[activeLetter] : null;
 
-  // In isActive mode (play page), don't show the enable button UI —
-  // the parent controls visibility. Just render the canvas directly.
-  if (isActive && !isRunning && !error) {
-    return (
-      <div className="flex h-full w-full items-center justify-center text-white/50 text-sm">
-        {isReady ? "Starting camera…" : "Loading AI…"}
-        <video ref={videoRef} playsInline muted className="hidden" aria-hidden="true" />
-        <canvas ref={canvasRef} className="hidden" />
-      </div>
-    );
-  }
-
-  if (!isRunning) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/10 p-8 backdrop-blur-sm">
-        <span className="text-5xl">📷</span>
-        <p className="text-center text-sm font-medium text-white/80">
-          Turn on your camera to see yourself as a fun character!
-        </p>
-        {error && <p className="text-center text-xs text-red-300">{error}</p>}
-        <button
-          onClick={() => void startCamera()}
-          disabled={!isReady}
-          className="rounded-full bg-white px-6 py-2.5 text-sm font-bold text-purple-700 shadow-lg transition hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isReady ? "Enable Camera 🎭" : "Loading AI…"}
-        </button>
-        {/* Refs need to be in DOM even when not running */}
-        <video ref={videoRef} playsInline muted className="hidden" aria-hidden="true" />
-        <canvas ref={canvasRef} className="hidden" />
-      </div>
-    );
-  }
-
+  // Always render video + canvas in the same DOM position so React never
+  // unmounts and remounts them across state transitions. The stream is attached
+  // to the video element by ref; remounting it would detach the srcObject and
+  // leave the draw loop waiting for readyState >= 2 forever.
   return (
-    <div className="relative flex flex-col items-center gap-3">
-      <div className="relative overflow-hidden rounded-2xl shadow-2xl w-full h-full">
-        {/* Hidden video element — source for canvas drawing */}
-        <video
-          ref={videoRef}
-          playsInline
-          muted
-          className="pointer-events-none absolute opacity-0"
-          aria-hidden="true"
-        />
+    <div className="relative w-full h-full">
+      {/* Hidden video element — stream source for canvas drawing */}
+      <video
+        ref={videoRef}
+        playsInline
+        muted
+        className="pointer-events-none absolute opacity-0 w-0 h-0"
+        aria-hidden="true"
+      />
 
-        {/* Canvas is the visible output */}
-        <canvas
-          ref={canvasRef}
-          className="block w-full h-full rounded-2xl object-cover"
-        />
+      {/* Pre-running overlay — loading / enable-camera prompt */}
+      {!isRunning && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/10 p-8 backdrop-blur-sm">
+          {isActive ? (
+            <p className="text-center text-sm text-white/50">
+              {isReady ? "Starting camera…" : "Loading AI…"}
+            </p>
+          ) : (
+            <>
+              <span className="text-5xl">📷</span>
+              <p className="text-center text-sm font-medium text-white/80">
+                Turn on your camera to see yourself as a fun character!
+              </p>
+              {error && <p className="text-center text-xs text-red-300">{error}</p>}
+              <button
+                onClick={() => void startCamera()}
+                disabled={!isReady}
+                className="rounded-full bg-white px-6 py-2.5 text-sm font-bold text-purple-700 shadow-lg transition hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isReady ? "Enable Camera 🎭" : "Loading AI…"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
-        {/* Letter badge overlay */}
-        {letterEntry && activeLetter && (
-          <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1 backdrop-blur-sm">
-            <span className="text-lg leading-none">{letterEntry.emoji}</span>
-            <span className="text-base font-black leading-none text-white">
-              {activeLetter}
-            </span>
-          </div>
-        )}
+      {/* Canvas is always in the DOM — visible only when running */}
+      <canvas
+        ref={canvasRef}
+        className={`block w-full h-full rounded-2xl object-cover ${isRunning ? "opacity-100" : "opacity-0"}`}
+      />
 
-        {/* Close button — only shown in standalone mode, not in isActive mode */}
-        {!isActive && (
-          <button
-            onClick={stopCamera}
-            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70"
-            aria-label="Disable camera"
-          >
-            ✕
-          </button>
-        )}
-      </div>
+      {/* Letter badge overlay */}
+      {isRunning && letterEntry && activeLetter && (
+        <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1 backdrop-blur-sm">
+          <span className="text-lg leading-none">{letterEntry.emoji}</span>
+          <span className="text-base font-black leading-none text-white">
+            {activeLetter}
+          </span>
+        </div>
+      )}
+
+      {/* Close button — only shown in standalone mode */}
+      {isRunning && !isActive && (
+        <button
+          onClick={stopCamera}
+          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70"
+          aria-label="Disable camera"
+        >
+          ✕
+        </button>
+      )}
     </div>
   );
 }
