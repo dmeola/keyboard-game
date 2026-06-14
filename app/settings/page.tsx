@@ -46,9 +46,12 @@ function KeyTile({ label, mastery, pressCount }: KeyTileProps) {
   );
 }
 
+const FOCUS_KEY = 'keyjr_focus';
+
 export default function SettingsPage() {
   const [keyData, setKeyData] = useState<Record<string, { pressCount: number; lastSeenAt: number }>>({});
   const [mode, setMode] = useState<GameMode>('explorer');
+  const [focusMode, setFocusMode] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [cleared, setCleared] = useState(false);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
@@ -57,6 +60,7 @@ export default function SettingsPage() {
     setKeyData(getKeyData());
     const saved = localStorage.getItem('keyjr_mode') as GameMode | null;
     if (saved) setMode(saved);
+    setFocusMode(localStorage.getItem(FOCUS_KEY) === 'true');
   }, []);
 
   // Move focus to the confirm button when confirmation state opens
@@ -69,6 +73,12 @@ export default function SettingsPage() {
   const handleModeChange = (m: GameMode) => {
     setMode(m);
     localStorage.setItem('keyjr_mode', m);
+  };
+
+  const handleFocusToggle = () => {
+    const next = !focusMode;
+    setFocusMode(next);
+    localStorage.setItem(FOCUS_KEY, String(next));
   };
 
   const handleClear = () => {
@@ -235,6 +245,32 @@ export default function SettingsPage() {
               <span className="text-xs font-normal">Ages 4–6</span>
             </motion.button>
           </div>
+        </motion.div>
+
+        {/* Focus Mode */}
+        <motion.div
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          <h2 className="font-heading font-bold text-xl text-gray-700 mb-1">Focus Mode</h2>
+          <p className="font-heading text-gray-600 text-sm mb-4" id="focus-desc">
+            Enters fullscreen on the first key press and hides the Home link so the child can't easily navigate away. Press Escape to exit.
+          </p>
+          <motion.button
+            className={`w-full font-heading font-semibold rounded-xl py-3 px-4 border-2 transition-colors ${
+              focusMode
+                ? 'bg-sky-300 border-sky-400 text-sky-900'
+                : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+            }`}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleFocusToggle}
+            aria-pressed={focusMode}
+            aria-describedby="focus-desc"
+          >
+            <span aria-hidden="true">{focusMode ? '🔒' : '🔓'}</span> Focus Mode is {focusMode ? 'On' : 'Off'}
+          </motion.button>
         </motion.div>
 
         {/* Clear progress */}

@@ -141,8 +141,9 @@ export function speak(text: string, options: SpeakOptions = {}): void {
 
 export function speakLetter(letter: string, _entry: LetterEntry): void {
   const src = `/audio/letter-${letter.toLowerCase()}.mp3`;
-  playAudioFile(src).catch(() => {
-    // Pre-generated file unavailable — fall back to synthesised speech
+  playAudioFile(src).catch((err: unknown) => {
+    // AbortError means the previous play was interrupted by a new key press — not a real failure
+    if (err instanceof DOMException && err.name === 'AbortError') return;
     const upper = letter.toUpperCase();
     speak(`${upper}... ${toTtsPhoneme(_entry.phoneme)} sound... ${upper} is for ${_entry.word}!`, {
       rate: 0.8,
@@ -153,7 +154,9 @@ export function speakLetter(letter: string, _entry: LetterEntry): void {
 
 export function speakNumber(digit: number, _entry: NumberEntry): void {
   const src = `/audio/number-${digit}.mp3`;
-  playAudioFile(src).catch(() => {
+  playAudioFile(src).catch((err: unknown) => {
+    // AbortError means the previous play was interrupted by a new key press — not a real failure
+    if (err instanceof DOMException && err.name === 'AbortError') return;
     if (!canSpeak()) return;
     window.speechSynthesis.cancel();
     const countPhrase =
@@ -175,5 +178,12 @@ export function speakWiggleBreak(): void {
 export function speakWelcome(): void {
   playAudioFile("/audio/welcome.mp3").catch(() => {
     speak("Welcome to KeyJr! Press any key to start exploring!", { rate: 0.85, pitch: 1.1 });
+  });
+}
+
+export function speakFocusModeExited(): void {
+  speak("Focus mode has ended. Press the button to go back to fullscreen.", {
+    rate: 0.85,
+    pitch: 1.0,
   });
 }

@@ -7,7 +7,7 @@ import Link from 'next/link';
 import type { LetterEntry, NumberEntry } from '@/lib/types';
 import { letterData } from '@/lib/letterData';
 import { numberData } from '@/lib/numberData';
-import { speakLetter, speakNumber, speakWiggleBreak, preloadAudio } from '@/lib/speechUtils';
+import { speakLetter, speakNumber, speakWiggleBreak, speakFocusModeExited, preloadAudio } from '@/lib/speechUtils';
 import {
   resumeAudioContext,
   playKeyPressSound,
@@ -188,6 +188,11 @@ function PlayPageInner() {
   // Background tint for key press animation
   const [bgTint, setBgTint] = useState<string | null>(null);
 
+  // Focus mode (fullscreen lock for young kids)
+  const [focusMode, setFocusMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const fullscreenRequestedRef = useRef(false);
+
   // Audio has been resumed
   const audioResumedRef = useRef(false);
   const wiggleCountRef = useRef(0);
@@ -214,6 +219,33 @@ function PlayPageInner() {
     setMasteryData(counts);
   }, [pressCount]);
 
+  /* Read focus mode setting on mount */
+  useEffect(() => {
+    setFocusMode(localStorage.getItem('keyjr_focus') === 'true');
+  }, []);
+
+  /* Listen for fullscreen exit — announce and surface re-enter button */
+  useEffect(() => {
+    const handleFsChange = () => {
+      const nowFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(nowFullscreen);
+      if (!nowFullscreen && focusMode && fullscreenRequestedRef.current) {
+        speakFocusModeExited();
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, [focusMode]);
+
+  const enterFullscreen = useCallback(() => {
+    if (typeof document === 'undefined' || !document.fullscreenEnabled) return;
+    fullscreenRequestedRef.current = true;
+    document.documentElement
+      .requestFullscreen()
+      .then(() => setIsFullscreen(true))
+      .catch(() => {});
+  }, []);
+
   /* Load CameraFilter dynamically — gracefully degrades if unavailable */
   useEffect(() => {
     import('@/components/CameraFilter/CameraFilter')
@@ -236,6 +268,11 @@ function PlayPageInner() {
   /* Shared key processing logic — used by keyboard and touch */
   const processKey = useCallback(
     (raw: string) => {
+      // Enter fullscreen on first interaction when focus mode is enabled
+      if (focusMode && !fullscreenRequestedRef.current) {
+        enterFullscreen();
+      }
+
       const upper = raw.toUpperCase();
       let type: KeyType = 'special';
       let entry: LetterEntry | NumberEntry | null = null;
@@ -303,7 +340,7 @@ function PlayPageInner() {
         setPipMessage(message);
       }
     },
-    [urlMode, questTarget, questEntry, setActiveKey, setActiveEntry, setKeyType, setPressCount]
+    [urlMode, questTarget, questEntry, focusMode, enterFullscreen, setActiveKey, setActiveEntry, setKeyType, setPressCount]
   );
 
   /* Core keyboard handler */
@@ -395,13 +432,24 @@ function PlayPageInner() {
       <div className="flex items-start justify-between px-4 pt-3 pb-1 gap-2 flex-wrap">
         {/* Back + camera toggle */}
         <div className="flex items-center gap-2">
-          <Link
-            href="/"
-            className="font-heading text-sm text-gray-400 hover:text-gray-600 transition-colors bg-white/60 rounded-xl px-3 py-1.5"
-            aria-label="Go back to home"
-          >
-            ← Home
-          </Link>
+          {!focusMode ? (
+            <Link
+              href="/"
+              className="font-heading text-sm text-gray-400 hover:text-gray-600 transition-colors bg-white/60 rounded-xl px-3 py-1.5"
+              aria-label="Go back to home"
+            >
+              ← Home
+            </Link>
+          ) : !isFullscreen ? (
+            <motion.button
+              className="font-heading text-sm bg-sky-500 text-white rounded-xl px-3 py-1.5 shadow-sm hover:bg-sky-600 transition-colors"
+              whileTap={{ scale: 0.95 }}
+              onClick={enterFullscreen}
+              aria-label="Re-enter fullscreen focus mode"
+            >
+              <span aria-hidden="true">⛶</span> Go Fullscreen
+            </motion.button>
+          ) : null}
           {cameraAvailable && (
             <motion.button
               className={`font-heading text-sm rounded-xl px-3 py-1.5 transition-colors ${cameraActive ? 'bg-coral-400 text-white' : 'bg-white/60 text-gray-500 hover:bg-white/80'}`}
