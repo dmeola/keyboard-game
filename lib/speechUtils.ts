@@ -14,56 +14,144 @@ const WIGGLE_MESSAGES = [
   "Wave your hands in the air like you just don't care!",
 ];
 
-function canSpeak(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    "speechSynthesis" in window
+// ---------------------------------------------------------------------------
+// Audio file playback (pre-generated with Samantha voice — sounds natural)
+// ---------------------------------------------------------------------------
+
+const audioCache = new Map<string, HTMLAudioElement>();
+
+function getAudio(src: string): HTMLAudioElement {
+  if (!audioCache.has(src)) {
+    const el = new Audio(src);
+    el.preload = "auto";
+    audioCache.set(src, el);
+  }
+  return audioCache.get(src)!;
+}
+
+function playAudioFile(src: string): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  const audio = getAudio(src);
+  audio.currentTime = 0;
+  return audio.play();
+}
+
+/** Preloads all letter and number audio files after the first user gesture. */
+export function preloadAudio(): void {
+  if (typeof window === "undefined") return;
+  const letters = "abcdefghijklmnopqrstuvwxyz".split("");
+  const numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  [...letters.map((l) => `/audio/letter-${l}.mp3`), ...numbers.map((n) => `/audio/number-${n}.mp3`), "/audio/welcome.mp3"].forEach(
+    (src) => getAudio(src) // instantiates + sets preload="auto"
   );
+}
+
+// ---------------------------------------------------------------------------
+// Web Speech API fallback (used for dynamic text like Pip messages)
+// ---------------------------------------------------------------------------
+
+function canSpeak(): boolean {
+  return typeof window !== "undefined" && "speechSynthesis" in window;
+}
+
+let cachedVoice: SpeechSynthesisVoice | null | undefined = undefined;
+
+/** Picks the best available voice, preferring natural/neural options. */
+function getBestVoice(): SpeechSynthesisVoice | null {
+  if (!canSpeak()) return null;
+  if (cachedVoice !== undefined) return cachedVoice;
+
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return null; // not loaded yet — resolved on next call
+
+  const preferred = [
+    "Samantha",                                                           // macOS — warm, natural
+    "Karen",                                                              // macOS Australian
+    "Google US English",                                                  // Chrome
+    "Microsoft Aria Online (Natural) - English (United States)",          // Edge neural
+    "Microsoft Jenny Online (Natural) - English (United States)",         // Edge neural
+    "Microsoft Zira - English (United States)",                           // Edge
+  ];
+
+  for (const name of preferred) {
+    const match = voices.find((v) => v.name === name);
+    if (match) {
+      cachedVoice = match;
+      return match;
+    }
+  }
+
+  // Fallback: first en-US voice, then any English voice
+  cachedVoice =
+    voices.find((v) => v.lang === "en-US") ??
+    voices.find((v) => v.lang.startsWith("en")) ??
+    null;
+  return cachedVoice;
 }
 
 export function speak(text: string, options: SpeakOptions = {}): void {
   if (!canSpeak()) return;
-
-  // Cancel any current speech before starting new utterance
   window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = options.rate ?? 0.85;
-  utterance.pitch = options.pitch ?? 1.2;
+  utterance.pitch = options.pitch ?? 1.15;
   utterance.volume = options.volume ?? 1.0;
+
+  const voice = getBestVoice();
+  if (voice) utterance.voice = voice;
+
+  // Re-cache voice after voices load (voices list may be empty on first call)
+  if (!voice) {
+    window.speechSynthesis.addEventListener(
+      "voiceschanged",
+      () => { cachedVoice = undefined; },
+      { once: true }
+    );
+  }
+
   window.speechSynthesis.speak(utterance);
 }
 
-export function speakLetter(letter: string, entry: LetterEntry): void {
-  if (!canSpeak()) return;
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
-  const upper = letter.toUpperCase();
-  // Pause markers via commas help pace the speech naturally for young children
-  const text = `${upper}... ${entry.phoneme} sound... ${upper} is for ${entry.word}!`;
-  speak(text, { rate: 0.8, pitch: 1.25 });
+export function speakLetter(letter: string, _entry: LetterEntry): void {
+  const src = `/audio/letter-${letter.toLowerCase()}.mp3`;
+  playAudioFile(src).catch(() => {
+    // Pre-generated file unavailable — fall back to synthesised speech
+    const upper = letter.toUpperCase();
+    speak(`${upper}... ${_entry.phoneme} sound... ${upper} is for ${_entry.word}!`, {
+      rate: 0.8,
+      pitch: 1.2,
+    });
+  });
 }
 
-export function speakNumber(digit: number, entry: NumberEntry): void {
-  if (!canSpeak()) return;
-
-  window.speechSynthesis.cancel();
-
-  const countPhrase =
-    digit > 0
-      ? ` Let's count! ${Array.from({ length: digit }, (_, i) => i + 1).join(", ")}!`
-      : "";
-
-  const text = `${entry.word}! ${digit}... ${entry.word}!${countPhrase}`;
-  speak(text, { rate: 0.8, pitch: 1.2 });
+export function speakNumber(digit: number, _entry: NumberEntry): void {
+  const src = `/audio/number-${digit}.mp3`;
+  playAudioFile(src).catch(() => {
+    if (!canSpeak()) return;
+    window.speechSynthesis.cancel();
+    const countPhrase =
+      digit > 0
+        ? ` Let's count! ${Array.from({ length: digit }, (_, i) => i + 1).join(", ")}!`
+        : "";
+    speak(`${_entry.word}! ${digit}... ${_entry.word}!${countPhrase}`, {
+      rate: 0.8,
+      pitch: 1.2,
+    });
+  });
 }
 
 export function speakWiggleBreak(): void {
-  if (!canSpeak()) return;
   const message = WIGGLE_MESSAGES[Math.floor(Math.random() * WIGGLE_MESSAGES.length)];
-  speak(message, { rate: 0.9, pitch: 1.3 });
+  speak(message, { rate: 0.9, pitch: 1.2 });
 }
 
 export function speakWelcome(): void {
-  if (!canSpeak()) return;
-  speak("Welcome to KeyJr! Press any key to start!", { rate: 0.85, pitch: 1.2 });
+  playAudioFile("/audio/welcome.mp3").catch(() => {
+    speak("Welcome to KeyJr! Press any key to start exploring!", { rate: 0.85, pitch: 1.1 });
+  });
 }

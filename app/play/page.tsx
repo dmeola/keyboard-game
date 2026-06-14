@@ -7,7 +7,7 @@ import Link from 'next/link';
 import type { LetterEntry, NumberEntry } from '@/lib/types';
 import { letterData } from '@/lib/letterData';
 import { numberData } from '@/lib/numberData';
-import { speakLetter, speakNumber, speakWiggleBreak } from '@/lib/speechUtils';
+import { speakLetter, speakNumber, speakWiggleBreak, preloadAudio } from '@/lib/speechUtils';
 import {
   resumeAudioContext,
   playKeyPressSound,
@@ -313,6 +313,7 @@ function PlayPageInner() {
       // Resume audio on first gesture
       if (!audioResumedRef.current) {
         resumeAudioContext();
+        preloadAudio();
         audioResumedRef.current = true;
       }
 
@@ -326,6 +327,7 @@ function PlayPageInner() {
     (key: string) => {
       if (!audioResumedRef.current) {
         resumeAudioContext();
+        preloadAudio();
         audioResumedRef.current = true;
       }
       processKey(key);

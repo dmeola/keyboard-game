@@ -69,7 +69,7 @@ function KeyCap({ label, isActive, pressCount, rowColor, activeShadow }: KeyCapP
           ? { scale: [1, 1.25, 1.15], boxShadow: ['0 0 0 0 rgba(0,0,0,0)', '0 0 12px 4px rgba(99,179,237,0.7)', '0 0 8px 2px rgba(99,179,237,0.4)'] }
           : { scale: 1, boxShadow: '0 0 0 0 rgba(0,0,0,0)' }
       }
-      transition={{ duration: 0.3, type: 'spring', stiffness: 400 }}
+      transition={{ duration: 0.3, type: 'tween', ease: 'easeOut' }}
     >
       {label}
 
