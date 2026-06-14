@@ -88,22 +88,23 @@ export default function HomePage() {
       </motion.div>
 
       {/* Mode cards */}
-      <ul className="flex flex-col sm:flex-row gap-4 md:gap-6 w-full max-w-xl mb-8 list-none p-0 m-0">
+      <ul className="flex flex-col sm:flex-row gap-4 md:gap-6 w-full max-w-xl mb-8 list-none p-0 m-0 sm:items-stretch">
         {/* Explorer */}
-        <li className="flex-1">
+        <li className="flex-1 flex flex-col">
           <motion.div
             custom={0}
             variants={cardVariants}
             initial="hidden"
             animate="visible"
+            className="flex-1 flex flex-col"
           >
             <Link
               href="/play?mode=explorer"
-              className="block group"
+              className="block group flex-1"
               aria-label="Explorer mode — for ages 2 to 4. Press any key and discover the world!"
             >
               <motion.div
-                className="relative bg-gradient-to-br from-sunny-300 to-orange-400 rounded-3xl shadow-xl p-6 flex flex-col items-center gap-3 border-4 border-sunny-400 cursor-pointer overflow-hidden"
+                className="relative h-full bg-gradient-to-br from-sunny-300 to-orange-400 rounded-3xl shadow-xl p-6 flex flex-col items-center justify-center gap-3 border-4 border-sunny-400 cursor-pointer overflow-hidden"
                 whileHover={{ scale: 1.04, y: -4 }}
                 whileTap={{ scale: 0.94 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
@@ -124,20 +125,21 @@ export default function HomePage() {
         </li>
 
         {/* Quest */}
-        <li className="flex-1">
+        <li className="flex-1 flex flex-col">
           <motion.div
             custom={1}
             variants={cardVariants}
             initial="hidden"
             animate="visible"
+            className="flex-1 flex flex-col"
           >
             <Link
               href="/play?mode=quest"
-              className="block group"
+              className="block group flex-1"
               aria-label="Quest mode — for ages 4 to 6. Find the letter Pip asks for!"
             >
               <motion.div
-                className="relative bg-gradient-to-br from-sky-400 to-purple-500 rounded-3xl shadow-xl p-6 flex flex-col items-center gap-3 border-4 border-sky-400 cursor-pointer overflow-hidden"
+                className="relative h-full bg-gradient-to-br from-sky-400 to-purple-500 rounded-3xl shadow-xl p-6 flex flex-col items-center justify-center gap-3 border-4 border-sky-400 cursor-pointer overflow-hidden"
                 whileHover={{ scale: 1.04, y: -4 }}
                 whileTap={{ scale: 0.94 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}

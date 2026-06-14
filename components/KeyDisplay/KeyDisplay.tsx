@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import type { LetterEntry, NumberEntry } from '@/lib/types';
 
 type KeyType = 'letter' | 'number' | 'special' | null;
@@ -10,6 +11,8 @@ interface KeyDisplayProps {
   entry: LetterEntry | NumberEntry | null;
   keyType: KeyType;
   pressSequence: number;
+  /** When true, the card fades out after a brief moment to redirect focus to the quest target */
+  fadeOut?: boolean;
 }
 
 function bgClassToColor(bgClass: string): string {
@@ -60,13 +63,23 @@ function buildAnnouncement(pressedKey: string | null, entry: LetterEntry | Numbe
   return specialInfo ? specialInfo.label : pressedKey;
 }
 
-export default function KeyDisplay({ pressedKey, entry, keyType, pressSequence }: KeyDisplayProps) {
+export default function KeyDisplay({ pressedKey, entry, keyType, pressSequence, fadeOut = false }: KeyDisplayProps) {
   const entryColor = entry && 'color' in entry ? entry.color : null;
   const color = entryColor ? bgClassToColor(entryColor) : 'var(--color-sky-400)';
   const textCls = entryColor ? textColorClass(entryColor) : 'text-white';
 
   const specialInfo = pressedKey ? SPECIAL_KEY_LABELS[pressedKey] : null;
   const announcement = buildAnnouncement(pressedKey, entry, keyType);
+
+  const [faded, setFaded] = useState(false);
+
+  // Reset and schedule fade whenever a new key is pressed
+  useEffect(() => {
+    if (!pressedKey || !fadeOut) { setFaded(false); return; }
+    setFaded(false);
+    const t = setTimeout(() => setFaded(true), 800);
+    return () => clearTimeout(t);
+  }, [pressedKey, pressSequence, fadeOut]);
 
   return (
     <div className="relative flex items-center justify-center w-full h-full min-h-[200px]">
@@ -85,13 +98,14 @@ export default function KeyDisplay({ pressedKey, entry, keyType, pressSequence }
             key={`${pressedKey}-${pressSequence}`}
             aria-hidden="true"
             initial={{ y: -80, scale: 0.5, opacity: 0, rotate: -10 }}
-            animate={{ y: 0, scale: 1, opacity: 1, rotate: 0 }}
+            animate={{ y: 0, scale: faded ? 0.85 : 1, opacity: faded ? 0.15 : 1, rotate: 0 }}
             exit={{ y: 40, scale: 0.8, opacity: 0 }}
             transition={{
               type: 'spring',
               stiffness: 400,
               damping: 20,
-              opacity: { duration: 0.15 },
+              opacity: faded ? { duration: 0.6 } : { duration: 0.15 },
+              scale: faded ? { duration: 0.6 } : undefined,
             }}
             className="flex flex-col items-center justify-center rounded-3xl shadow-2xl px-8 py-6 min-w-[180px]"
             style={{ backgroundColor: color }}

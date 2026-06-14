@@ -1,22 +1,36 @@
-# ⌨️ KeyJr — Learn Letters & Numbers
+# KeyJr — Learn Letters & Numbers
 
 > **"Keyboard Junior"** — A multisensory keyboard-learning site for children ages 2–6.
 
 Press any key. Hear its letter name and phoneme sound. See a colorful keyword image. Watch Pip the owl react with delight!
 
----
-
-## Screenshot
-
-<!-- TODO: Add screenshot here -->
-*Screenshot placeholder — add a screenshot of the home page and play page here.*
+Live at **[keyjr.com](https://keyjr.com)**
 
 ---
 
 ## Target Audience
 
 - **Explorer Mode (ages 2–4):** Press any key → immediate multisensory response. No wrong answers. Pip celebrates every press.
-- **Quest Mode (ages 4–6):** Pip asks "Can you find the A?" Child must press the correct key. Gentle hints, big celebrations.
+- **Quest Mode (ages 4–6):** Pip asks "Can you find the A?" Child must press the correct key. Gentle hints and big celebrations. Quests favor less-practiced letters to build balanced mastery.
+
+---
+
+## Features
+
+- **A–Z letter recognition** with word associations (A = Apple, B = Balloon…), phoneme sounds, and animated emoji
+- **0–9 number learning** with staggered counting animations and fun facts
+- **Pip the owl mascot** — reacts to each key with unique expressions (`idle`, `happy`, `excited`, `curious`, `nudge`, `celebrate`) and personalized speech bubble messages
+- **Pre-recorded audio** — natural-sounding MP3s (Samantha voice) for every letter, number, and welcome message; Web Speech API fallback when audio files are unavailable
+- **Web Audio sound effects** — synthesized key-press tones and quest celebration arpeggios
+- **AR camera filters** (optional) — 26 letter-themed face overlays using MediaPipe Face Landmarker (A = apple ears, B = balloons, C = cat ears…)
+- **On-screen keyboard** (desktop) — QWERTY layout with per-key mastery heatmap dots
+- **Touch keyboard** (mobile) — colorful A–Z + 0–9 tap grid
+- **Mastery tracking** via `localStorage` — 4 levels per key: New (0) → Learning (1–2×) → Practiced (3–5×) → Mastered (6+×)
+- **Session progress** — star bar (1 star per 5 key presses, up to 3 stars)
+- **Focus mode** — parent setting that auto-enters fullscreen on first key press and hides navigation; announces when exited
+- **Parent corner** (`/settings`) — mastery heatmap, per-key progress, default mode selector, focus mode toggle, reset progress
+- **WCAG AA accessibility** — `aria-live` regions, skip link, proper labels, sufficient contrast
+- **PWA installable** — web app manifest + theme color
 
 ---
 
@@ -27,28 +41,14 @@ Press any key. Hear its letter name and phoneme sound. See a colorful keyword im
 | Framework | Next.js 16 (App Router, TypeScript) |
 | Styling | Tailwind CSS v4 + CSS custom properties |
 | Animation | Framer Motion |
-| Text-to-Speech | Web Speech API |
-| Sound Effects | Web Audio API (synthesized, no files needed) |
+| Audio | Pre-recorded MP3s + Web Speech API fallback |
+| Sound Effects | Web Audio API (synthesized oscillators) |
 | Camera Filters | MediaPipe Face Landmarker + Canvas 2D |
 | State | React Context + `localStorage` |
 | Hosting | Vercel |
 | DNS | Cloudflare → `keyjr.com` |
 
----
-
-## Features
-
-- 🔤 **A–Z letter recognition** with word associations (A = Apple, B = Balloon…)
-- 🔢 **0–9 number learning** with counted object animations
-- 🦉 **Pip the owl mascot** — reacts specifically to each key with expressions and speech
-- 🎵 **Web Audio sound effects** — key press tones, celebration arpeggios, wiggle sounds
-- 📷 **AR camera filter** (optional) — letter-themed face overlays using MediaPipe
-- ⌨️ **On-screen keyboard** with mastery heatmap
-- 📱 **Mobile touch keyboard** — colorful tap grid for phones/tablets
-- 🏆 **Mastery tracking** via `localStorage` — 4 mastery levels per key
-- 🕺 **Wiggle breaks** every 8 key presses
-- ♿ **WCAG AA accessibility** — `aria-live`, proper labels, sufficient contrast
-- 📲 **PWA installable** — manifest + theme color
+No database, authentication, or API routes — entirely client-side.
 
 ---
 
@@ -61,13 +61,19 @@ Press any key. Hear its letter name and phoneme sound. See a colorful keyword im
 ### Install & run
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/keyboard-game.git
-cd keyboard-game
+git clone https://github.com/danfeldman90/keyjr.git
+cd keyjr
 npm install
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+> **Audio:** Letter and number audio files are pre-generated and committed to `public/audio/`. If you need to regenerate them (macOS only):
+> ```bash
+> bash scripts/generate-audio.sh
+> ```
+> This requires `ffmpeg` and uses the macOS `say` command with the Samantha voice.
 
 ### Build for production
 
@@ -94,6 +100,8 @@ git push origin main
 # Vercel auto-deploys from main → https://keyjr.com
 ```
 
+No environment variables are required.
+
 ---
 
 ## Domain
@@ -105,29 +113,32 @@ git push origin main
 ## Project Structure
 
 ```
-keyboard-game/
+keyjr/
 ├── app/
-│   ├── layout.tsx          # Root layout, fonts, metadata, PWA
+│   ├── layout.tsx          # Root layout, fonts, metadata, GameProvider
 │   ├── page.tsx            # Home / mode selector
 │   ├── play/page.tsx       # Main learning experience
-│   └── settings/page.tsx   # Parent settings & mastery dashboard
+│   └── settings/page.tsx   # Parent corner — mastery & settings
 ├── components/
-│   ├── GuideCharacter/     # Pip the owl SVG mascot
+│   ├── GuideCharacter/     # Pip the owl SVG mascot + expressions
 │   ├── KeyDisplay/         # Big animated letter/number display
-│   ├── KeyboardVisual/     # On-screen keyboard with highlights
-│   ├── LetterImage/        # Keyword image (A = apple)
-│   ├── NumberDisplay/      # Counted object animation
-│   ├── CameraFilter/       # AR face overlay (optional)
-│   └── SessionTimer/       # Progress bar + wiggle breaks
+│   ├── KeyboardVisual/     # On-screen QWERTY with mastery heatmap
+│   ├── LetterImage/        # Keyword emoji + floating related emojis
+│   ├── NumberDisplay/      # Staggered counting animation + fun facts
+│   ├── CameraFilter/       # AR face filters (26 letter overlays)
+│   └── SessionTimer/       # Star progress bar (5 presses per star)
 ├── lib/
-│   ├── letterData.ts       # A–Z with word, emoji, phoneme, color
-│   ├── numberData.ts       # 0–9 with objects and colors
-│   ├── speechUtils.ts      # Web Speech API helpers
+│   ├── letterData.ts       # A–Z: word, emoji, phoneme, color, filter theme
+│   ├── numberData.ts       # 0–9: objects, colors, fun facts
+│   ├── speechUtils.ts      # MP3 playback + Web Speech API fallback
 │   ├── audioUtils.ts       # Web Audio API sound effects
 │   ├── sessionStore.ts     # localStorage mastery tracking
-│   └── gameContext.tsx     # React context for game state
-└── public/
-    └── manifest.json       # PWA manifest
+│   └── gameContext.tsx     # React context for shared game state
+├── public/
+│   ├── audio/              # Pre-recorded MP3s for letters, numbers, welcome
+│   └── manifest.json       # PWA manifest
+└── scripts/
+    └── generate-audio.sh   # macOS: regenerate audio files via `say` + ffmpeg
 ```
 
 ---

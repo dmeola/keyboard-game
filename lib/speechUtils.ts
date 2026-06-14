@@ -174,7 +174,7 @@ export function speakNumber(digit: number, _entry: NumberEntry): void {
     // AbortError means the previous play was interrupted by a new key press — not a real failure
     if (err instanceof DOMException && err.name === 'AbortError') return;
     if (!canSpeak()) return;
-    const parts = [`${_entry.word}!`, `${digit}`, `${_entry.word}!`];
+    const parts: string[] = [`${_entry.word}!`];
     if (digit > 0) {
       parts.push("Let's count!");
       parts.push(`${Array.from({ length: digit }, (_, i) => i + 1).join(", ")}!`);

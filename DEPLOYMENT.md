@@ -99,10 +99,10 @@ Once your nameservers have propagated to Cloudflare:
 
 ## Environment Variables
 
-No environment variables are required for the basic app. If you add API integrations in the future:
+No environment variables are required. The app is entirely client-side with no external API integrations.
+
+If you add server-side integrations in the future:
 
 1. Go to Vercel → **Settings → Environment Variables**.
 2. Add the variable for **Production**, **Preview**, and **Development** environments.
 3. Redeploy to pick up the new values.
-
-See `.env.example` for the list of variables.

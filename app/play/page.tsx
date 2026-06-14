@@ -412,15 +412,14 @@ function PlayPageInner() {
       <div className="flex items-start justify-between px-4 pt-3 pb-1 gap-2 flex-wrap">
         {/* Back + camera toggle */}
         <div className="flex items-center gap-2">
-          {!focusMode ? (
-            <Link
-              href="/"
-              className="font-heading text-sm text-gray-400 hover:text-gray-600 transition-colors bg-white/60 rounded-xl px-3 py-1.5"
-              aria-label="Go back to home"
-            >
-              ← Home
-            </Link>
-          ) : !isFullscreen ? (
+          <Link
+            href="/"
+            className="font-heading text-sm text-sky-700 hover:text-sky-900 transition-colors bg-white rounded-xl px-3 py-2 shadow-sm border border-sky-100"
+            aria-label="Go back to home"
+          >
+            ← Home
+          </Link>
+          {focusMode && !isFullscreen && (
             <motion.button
               className="font-heading text-sm bg-sky-500 text-white rounded-xl px-3 py-1.5 shadow-sm hover:bg-sky-600 transition-colors"
               whileTap={{ scale: 0.95 }}
@@ -429,7 +428,7 @@ function PlayPageInner() {
             >
               <span aria-hidden="true">⛶</span> Go Fullscreen
             </motion.button>
-          ) : null}
+          )}
           {cameraAvailable && (
             <motion.button
               className={`font-heading text-sm rounded-xl px-3 py-1.5 transition-colors ${cameraActive ? 'bg-coral-400 text-white' : 'bg-white/60 text-gray-500 hover:bg-white/80'}`}
@@ -476,6 +475,7 @@ function PlayPageInner() {
                 entry={activeEntry}
                 keyType={keyType}
                 pressSequence={pressCount}
+                fadeOut={urlMode === 'quest'}
               />
             </div>
 
