@@ -7,12 +7,11 @@ import Link from 'next/link';
 import type { LetterEntry, NumberEntry } from '@/lib/types';
 import { letterData } from '@/lib/letterData';
 import { numberData } from '@/lib/numberData';
-import { speakLetter, speakNumber, speakWiggleBreak, speakFocusModeExited, preloadAudio } from '@/lib/speechUtils';
+import { speakLetter, speakNumber, speakFocusModeExited, preloadAudio } from '@/lib/speechUtils';
 import {
   resumeAudioContext,
   playKeyPressSound,
   playCelebrationSound,
-  playWiggleSound,
 } from '@/lib/audioUtils';
 import { recordKeyPress, getKeyData } from '@/lib/sessionStore';
 import { useGame } from '@/lib/gameContext';
@@ -173,8 +172,6 @@ function PlayPageInner() {
   const [pipExpression, setPipExpression] = useState<PipExpression>('idle');
   const [pipMessage, setPipMessage] = useState('Press any key to start! 🎉');
   const [masteryData, setMasteryData] = useState<Record<string, number>>({});
-  const [showWiggle, setShowWiggle] = useState(false);
-  const [wiggleAcked, setWiggleAcked] = useState(0);
 
   // Quest mode state
   const [questTarget, setQuestTarget] = useState<string>('');
@@ -195,7 +192,6 @@ function PlayPageInner() {
 
   // Audio has been resumed
   const audioResumedRef = useRef(false);
-  const wiggleCountRef = useRef(0);
 
   /* Sync URL mode to context */
   useEffect(() => {
@@ -257,13 +253,6 @@ function PlayPageInner() {
         setCameraAvailable(false);
       });
   }, []);
-
-  const handleWiggleAck = useCallback(() => {
-    setWiggleAcked(pressCount);
-    setShowWiggle(false);
-  }, [pressCount]);
-
-  const wiggleShouldShow = pressCount > 0 && pressCount % 8 === 0 && pressCount !== wiggleAcked;
 
   /* Shared key processing logic — used by keyboard and touch */
   const processKey = useCallback(
@@ -379,15 +368,6 @@ function PlayPageInner() {
     return () => window.removeEventListener('keydown', handleKey);
   }, [handleKey]);
 
-  /* Wiggle break TTS + sound */
-  useEffect(() => {
-    if (wiggleShouldShow && wiggleCountRef.current !== pressCount) {
-      wiggleCountRef.current = pressCount;
-      speakWiggleBreak();
-      playWiggleSound();
-    }
-  }, [wiggleShouldShow, pressCount]);
-
   const isLetter = keyType === 'letter';
   const isNumber = keyType === 'number';
 
@@ -469,10 +449,7 @@ function PlayPageInner() {
         )}
 
         {/* Session progress stars */}
-        <SessionTimer
-          pressCount={pressCount}
-          onWiggleAcknowledged={handleWiggleAck}
-        />
+        <SessionTimer pressCount={pressCount} />
       </div>
 
       {/* ── Main content ─────────────────────────────── */}

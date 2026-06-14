@@ -6,14 +6,6 @@ type SpeakOptions = {
   volume?: number;
 };
 
-const WIGGLE_MESSAGES = [
-  "Wiggle your fingers! Shake your head! You're doing amazing!",
-  "Stand up and do a little dance! Shake those sillies out!",
-  "Stretch your arms up high! Now wiggle all ten fingers!",
-  "Time for a wiggle break! Jump up and down three times!",
-  "Wave your hands in the air like you just don't care!",
-];
-
 // ---------------------------------------------------------------------------
 // Audio file playback (pre-generated with Samantha voice — sounds natural)
 // ---------------------------------------------------------------------------
@@ -111,10 +103,7 @@ function getBestVoice(): SpeechSynthesisVoice | null {
   return cachedVoice;
 }
 
-export function speak(text: string, options: SpeakOptions = {}): void {
-  if (!canSpeak()) return;
-  window.speechSynthesis.cancel();
-
+function makeUtterance(text: string, options: SpeakOptions): SpeechSynthesisUtterance {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = options.rate ?? 0.85;
   utterance.pitch = options.pitch ?? 1.15;
@@ -123,7 +112,6 @@ export function speak(text: string, options: SpeakOptions = {}): void {
   const voice = getBestVoice();
   if (voice) utterance.voice = voice;
 
-  // Re-cache voice after voices load (voices list may be empty on first call)
   if (!voice) {
     window.speechSynthesis.addEventListener(
       "voiceschanged",
@@ -132,7 +120,35 @@ export function speak(text: string, options: SpeakOptions = {}): void {
     );
   }
 
-  window.speechSynthesis.speak(utterance);
+  return utterance;
+}
+
+export function speak(text: string, options: SpeakOptions = {}): void {
+  if (!canSpeak()) return;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(makeUtterance(text, options));
+}
+
+/**
+ * Speaks each part as a separate utterance with a pause between them.
+ * Produces natural spacing rather than one long run-together sentence.
+ */
+export function speakSequence(parts: string[], options: SpeakOptions = {}, pauseMs = 300): void {
+  if (!canSpeak()) return;
+  window.speechSynthesis.cancel();
+
+  const queue = [...parts];
+
+  function speakNext() {
+    if (queue.length === 0) return;
+    const utterance = makeUtterance(queue.shift()!, options);
+    utterance.onend = () => {
+      if (queue.length > 0) setTimeout(speakNext, pauseMs);
+    };
+    window.speechSynthesis.speak(utterance);
+  }
+
+  speakNext();
 }
 
 // ---------------------------------------------------------------------------
@@ -145,10 +161,10 @@ export function speakLetter(letter: string, _entry: LetterEntry): void {
     // AbortError means the previous play was interrupted by a new key press — not a real failure
     if (err instanceof DOMException && err.name === 'AbortError') return;
     const upper = letter.toUpperCase();
-    speak(`${upper}... ${toTtsPhoneme(_entry.phoneme)} sound... ${upper} is for ${_entry.word}!`, {
-      rate: 0.8,
-      pitch: 1.2,
-    });
+    speakSequence(
+      [upper, `${toTtsPhoneme(_entry.phoneme)} sound`, `${upper} is for ${_entry.word}!`],
+      { rate: 0.8, pitch: 1.2 }
+    );
   });
 }
 
@@ -158,32 +174,27 @@ export function speakNumber(digit: number, _entry: NumberEntry): void {
     // AbortError means the previous play was interrupted by a new key press — not a real failure
     if (err instanceof DOMException && err.name === 'AbortError') return;
     if (!canSpeak()) return;
-    window.speechSynthesis.cancel();
-    const countPhrase =
-      digit > 0
-        ? ` Let's count! ${Array.from({ length: digit }, (_, i) => i + 1).join(", ")}!`
-        : "";
-    speak(`${_entry.word}! ${digit}... ${_entry.word}!${countPhrase}`, {
-      rate: 0.8,
-      pitch: 1.2,
-    });
+    const parts = [`${_entry.word}!`, `${digit}`, `${_entry.word}!`];
+    if (digit > 0) {
+      parts.push("Let's count!");
+      parts.push(`${Array.from({ length: digit }, (_, i) => i + 1).join(", ")}!`);
+    }
+    speakSequence(parts, { rate: 0.8, pitch: 1.2 });
   });
-}
-
-export function speakWiggleBreak(): void {
-  const message = WIGGLE_MESSAGES[Math.floor(Math.random() * WIGGLE_MESSAGES.length)];
-  speak(message, { rate: 0.9, pitch: 1.2 });
 }
 
 export function speakWelcome(): void {
   playAudioFile("/audio/welcome.mp3").catch(() => {
-    speak("Welcome to KeyJr! Press any key to start exploring!", { rate: 0.85, pitch: 1.1 });
+    speakSequence(
+      ["Welcome to KeyJr!", "Press any key to start exploring!"],
+      { rate: 0.85, pitch: 1.1 }
+    );
   });
 }
 
 export function speakFocusModeExited(): void {
-  speak("Focus mode has ended. Press the button to go back to fullscreen.", {
-    rate: 0.85,
-    pitch: 1.0,
-  });
+  speakSequence(
+    ["Focus mode has ended.", "Press the button to go back to fullscreen."],
+    { rate: 0.85, pitch: 1.0 }
+  );
 }

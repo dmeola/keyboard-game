@@ -73,39 +73,6 @@ export function playCelebrationSound(): void {
   });
 }
 
-/** Silly wobbling sound for wiggle break — oscillator frequency modulation. */
-export function playWiggleSound(): void {
-  if (typeof window === 'undefined') return;
-  const c = getCtx();
-  if (!c) return;
-
-  const osc = c.createOscillator();
-  const lfo = c.createOscillator();
-  const lfoGain = c.createGain();
-  const masterGain = c.createGain();
-
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(300, c.currentTime);
-
-  lfo.type = 'sine';
-  lfo.frequency.setValueAtTime(8, c.currentTime);
-  lfoGain.gain.setValueAtTime(80, c.currentTime);
-
-  masterGain.gain.setValueAtTime(0, c.currentTime);
-  masterGain.gain.linearRampToValueAtTime(0.15, c.currentTime + 0.05);
-  masterGain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.7);
-
-  lfo.connect(lfoGain);
-  lfoGain.connect(osc.frequency);
-  osc.connect(masterGain);
-  masterGain.connect(c.destination);
-
-  lfo.start(c.currentTime);
-  lfo.stop(c.currentTime + 0.75);
-  osc.start(c.currentTime);
-  osc.stop(c.currentTime + 0.75);
-}
-
 /** Gentle descending tone — used for wrong answer / error. Not harsh or scary. */
 export function playErrorSound(): void {
   if (typeof window === 'undefined') return;
