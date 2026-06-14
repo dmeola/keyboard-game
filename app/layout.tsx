@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nunito, Fredoka } from "next/font/google";
+import { GameProvider } from "@/lib/gameContext";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -28,7 +29,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${nunito.variable} ${fredoka.variable} h-full`}>
-      <body className="min-h-full font-sans antialiased">{children}</body>
+      <body className="min-h-full font-sans antialiased">
+        <GameProvider>{children}</GameProvider>
+      </body>
     </html>
   );
 }
