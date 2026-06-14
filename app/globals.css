@@ -8,19 +8,78 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-sans: var(--font-nunito);
+  --font-heading: var(--font-fredoka);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* KeyJr child-friendly palette */
+  --color-coral-50: #fff1f0;
+  --color-coral-100: #ffe0de;
+  --color-coral-200: #ffc7c3;
+  --color-coral-300: #ff9e98;
+  --color-coral-400: #ff6b63;
+  --color-coral-500: #ff3d33;
+  --color-coral-600: #ed1f14;
+  --color-coral-700: #c8160c;
+  --color-coral-800: #a5170e;
+  --color-coral-900: #881a12;
+
+  --color-sunny-50: #fffde7;
+  --color-sunny-100: #fff9c4;
+  --color-sunny-200: #fff176;
+  --color-sunny-300: #ffee58;
+  --color-sunny-400: #ffeb3b;
+  --color-sunny-500: #fdd835;
+  --color-sunny-600: #f9a825;
+  --color-sunny-700: #f57f17;
+  --color-sunny-800: #e65100;
+  --color-sunny-900: #bf360c;
+
+  --color-sky-50: #e1f5fe;
+  --color-sky-100: #b3e5fc;
+  --color-sky-200: #81d4fa;
+  --color-sky-300: #4fc3f7;
+  --color-sky-400: #29b6f6;
+  --color-sky-500: #03a9f4;
+  --color-sky-600: #039be5;
+  --color-sky-700: #0288d1;
+  --color-sky-800: #0277bd;
+  --color-sky-900: #01579b;
+
+  --color-grass-50: #e8f5e9;
+  --color-grass-100: #c8e6c9;
+  --color-grass-200: #a5d6a7;
+  --color-grass-300: #81c784;
+  --color-grass-400: #66bb6a;
+  --color-grass-500: #4caf50;
+  --color-grass-600: #43a047;
+  --color-grass-700: #388e3c;
+  --color-grass-800: #2e7d32;
+  --color-grass-900: #1b5e20;
+
+  --color-purple-50: #f3e5f5;
+  --color-purple-100: #e1bee7;
+  --color-purple-200: #ce93d8;
+  --color-purple-300: #ba68c8;
+  --color-purple-400: #ab47bc;
+  --color-purple-500: #9c27b0;
+  --color-purple-600: #8e24aa;
+  --color-purple-700: #7b1fa2;
+  --color-purple-800: #6a1b9a;
+  --color-purple-900: #4a148c;
+
+  --color-orange-50: #fff3e0;
+  --color-orange-100: #ffe0b2;
+  --color-orange-200: #ffcc80;
+  --color-orange-300: #ffb74d;
+  --color-orange-400: #ffa726;
+  --color-orange-500: #ff9800;
+  --color-orange-600: #fb8c00;
+  --color-orange-700: #f57c00;
+  --color-orange-800: #ef6c00;
+  --color-orange-900: #e65100;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
