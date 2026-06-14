@@ -1,7 +1,23 @@
 'use client';
 
-import { motion, useAnimation } from 'framer-motion';
-import { useEffect } from 'react';
+/* ────────────────────────────────────────────────────────────────────────────
+   Pip the Owl — redesigned mascot
+
+   Same public API as before:
+     • <GuideCharacter expression message size />   (default export)
+     • getPipMessage(key, entry, type)
+     • LETTER_MESSAGES / NUMBER_MESSAGES
+     • type PipExpression
+
+   Visual redesign: brighter, rounder, bouncier owl with soft feather tufts,
+   big cute eyes (amber iris with sparkle highlights), a candy-corn beak,
+   scalloped wings, a cream tummy, and little feet — no branch.
+   Body animations are CSS (injected once); framer-motion is used only for the
+   speech-bubble pop.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import type { LetterEntry, NumberEntry } from '@/lib/types';
 
 export type PipExpression = 'idle' | 'happy' | 'excited' | 'curious' | 'nudge' | 'celebrate';
@@ -10,9 +26,11 @@ interface GuideCharacterProps {
   expression: PipExpression;
   message: string;
   size?: number;
+  /** Optional brand color for the owl. Defaults to 'sky'. */
+  theme?: keyof typeof OWL_THEMES;
 }
 
-/* Per-key personalized messages */
+/* ── Per-key personalized messages ──────────────────────────────────────── */
 const LETTER_MESSAGES: Record<string, { expression: PipExpression; message: string }> = {
   A: { expression: 'excited', message: 'A is for Apple! 🍎 A says "ahh"!' },
   B: { expression: 'happy', message: 'B is for Balloon! 🎈 B goes "buh"!' },
@@ -39,7 +57,7 @@ const LETTER_MESSAGES: Record<string, { expression: PipExpression; message: stri
   W: { expression: 'happy', message: 'W is for Watermelon! 🍉 W says "wuh"!' },
   X: { expression: 'curious', message: 'X is for Xylophone! 🎵 X goes "ksss"!' },
   Y: { expression: 'happy', message: 'Y is for Yarn! 🧶 Y says "yuh"!' },
-  Z: { expression: 'excited', message: 'Z is for Zebra! 🦓 Z goes "zzz"!' },
+  Z: { expression: 'excited', message: 'Z is for Zebra! 🦓 Z says "zzz"!' },
 };
 
 const NUMBER_MESSAGES: Record<number, { expression: PipExpression; message: string }> = {
@@ -51,8 +69,8 @@ const NUMBER_MESSAGES: Record<number, { expression: PipExpression; message: stri
   5: { expression: 'excited', message: 'FIVE shining stars! ⭐ Give me FIVE!' },
   6: { expression: 'curious', message: 'Six dice! 🎲 Roll all SIX!' },
   7: { expression: 'excited', message: 'Seven colorful rainbows! 🌈 Count to SEVEN!' },
-  8: { expression: 'excited', message: 'Eight octopus arms! 🐙 That\'s four big hugs!' },
-  9: { expression: 'celebrate', message: 'NINE! Almost ten! 🎉 You\'re SO close!' },
+  8: { expression: 'excited', message: "Eight octopus arms! 🐙 That's four big hugs!" },
+  9: { expression: 'celebrate', message: "NINE! Almost ten! 🎉 You're SO close!" },
 };
 
 export function getPipMessage(
@@ -62,16 +80,20 @@ export function getPipMessage(
 ): { expression: PipExpression; message: string } {
   if (type === 'letter') {
     const upper = key.toUpperCase();
-    return LETTER_MESSAGES[upper] ?? { expression: 'happy', message: `${upper} is for ${(entry as LetterEntry)?.word ?? upper}!` };
+    return (
+      LETTER_MESSAGES[upper] ?? {
+        expression: 'happy',
+        message: `${upper} is for ${(entry as LetterEntry)?.word ?? upper}!`,
+      }
+    );
   }
   if (type === 'number') {
     const digit = parseInt(key, 10);
     return NUMBER_MESSAGES[digit] ?? { expression: 'happy', message: `${key}! Great press!` };
   }
 
-  // Special keys
   const specialMessages: Record<string, { expression: PipExpression; message: string }> = {
-    ' ': { expression: 'curious', message: 'That\'s the space bar! It makes room between words!' },
+    ' ': { expression: 'curious', message: "That's the space bar! It makes room between words!" },
     Enter: { expression: 'happy', message: 'Enter! That means "I\'m done!" ↵' },
     Backspace: { expression: 'nudge', message: 'Backspace! It erases what you typed! ⌫' },
     Shift: { expression: 'excited', message: 'Shift makes letters BIG! ⇧' },
@@ -87,68 +109,126 @@ export function getPipMessage(
   return specialMessages[key] ?? { expression: 'idle', message: `You pressed ${key}! Interesting!` };
 }
 
-/* Eye path helpers */
-function getEyePath(expression: PipExpression, isLeft: boolean): { scaleY: number; cy: number } {
-  switch (expression) {
-    case 'happy': return { scaleY: 0.35, cy: 0 };
-    case 'excited': return { scaleY: 1.2, cy: -2 };
-    case 'curious': return { scaleY: 1.0, cy: isLeft ? 0 : -3 };
-    case 'nudge': return { scaleY: 0.8, cy: 3 };
-    case 'celebrate': return { scaleY: 1.3, cy: -3 };
-    default: return { scaleY: 1.0, cy: 0 };
+/* ── Color themes ──────────────────────────────────────────────────────────── */
+const OWL_THEMES = {
+  sky:   { body: '#54C5F0', dark: '#28B0E6', wing: '#2BA1D8', face: '#CDEDFB', outline: '#1E93CE', beakTop: '#FFB23E', beakBot: '#F98C16', feet: '#FB9A1E' },
+  teal:  { body: '#39D2C6', dark: '#1CBDB1', wing: '#15A89C', face: '#C6F2EC', outline: '#0E9E92', beakTop: '#FFB23E', beakBot: '#F98C16', feet: '#FB9A1E' },
+  berry: { body: '#FF8C8C', dark: '#FF6B6B', wing: '#F25C5C', face: '#FFDCD8', outline: '#E84C4C', beakTop: '#FFC24D', beakBot: '#FB9A1E', feet: '#F98C16' },
+  grass: { body: '#74CE7E', dark: '#54B85F', wing: '#46A852', face: '#CDEFCF', outline: '#3E9A48', beakTop: '#FFB23E', beakBot: '#F98C16', feet: '#FB9A1E' },
+  sunny: { body: '#FFC04D', dark: '#FFA92B', wing: '#F6921A', face: '#FFE9C2', outline: '#E8830C', beakTop: '#FF8A7E', beakBot: '#F2554A', feet: '#F2554A' },
+} as const;
+
+const C = { belly: '#FFF4CF', bellyLn: '#F4E2A6', iris: '#F7B733', irisIn: '#E89A0E', pupil: '#2A2A52', cheek: '#FF8A80' };
+
+/* ── Eye helpers ───────────────────────────────────────────────────────────── */
+type EyeMode = 'open' | 'smile' | 'wide' | 'star';
+
+function eyeConfig(e: PipExpression): { left: EyeMode; right: EyeMode; look: [number, number] } {
+  switch (e) {
+    case 'happy':     return { left: 'smile', right: 'smile', look: [0, 0] };
+    case 'excited':   return { left: 'wide',  right: 'wide',  look: [0, -1] };
+    case 'curious':   return { left: 'open',  right: 'open',  look: [5, -6] };
+    case 'nudge':     return { left: 'smile', right: 'open',  look: [6, 2] };
+    case 'celebrate': return { left: 'star',  right: 'star',  look: [0, -2] };
+    default:          return { left: 'open',  right: 'open',  look: [0, 0] };
   }
 }
 
-function getPupilOffset(expression: PipExpression, isLeft: boolean): { dx: number; dy: number } {
-  switch (expression) {
-    case 'nudge': return { dx: isLeft ? -3 : 3, dy: 0 };
-    case 'curious': return { dx: isLeft ? 1 : 3, dy: isLeft ? -1 : -2 };
-    case 'celebrate': return { dx: isLeft ? -2 : 2, dy: -2 };
-    default: return { dx: 0, dy: 0 };
+function Eye({ cx, cy, mode, look, blink }: { cx: number; cy: number; mode: EyeMode; look: [number, number]; blink: boolean }) {
+  const lx = Math.max(-5, Math.min(5, look[0]));
+  const ly = Math.max(-5, Math.min(5, look[1]));
+
+  if (mode === 'smile') {
+    return <path d={`M ${cx - 20} ${cy + 5} Q ${cx} ${cy - 16} ${cx + 20} ${cy + 5}`} stroke={C.pupil} strokeWidth="7" strokeLinecap="round" fill="none" />;
   }
+  if (blink) {
+    return <path d={`M ${cx - 19} ${cy} Q ${cx} ${cy + 7} ${cx + 19} ${cy}`} stroke={C.pupil} strokeWidth="6.5" strokeLinecap="round" fill="none" />;
+  }
+  const wide = mode === 'wide' || mode === 'star';
+  const scl = wide ? 30 : 28;
+  const irisR = wide ? 25 : 23;
+  const pupR = wide ? 16 : 17;
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={scl} fill="#fff" />
+      <g transform={`translate(${lx} ${ly})`}>
+        <circle cx={cx} cy={cy} r={irisR} fill={C.iris} />
+        <circle cx={cx} cy={cy} r={irisR} fill="none" stroke={C.irisIn} strokeWidth="2" opacity="0.5" />
+        <circle cx={cx} cy={cy} r={pupR} fill={C.pupil} />
+        <circle cx={cx - 8} cy={cy - 9} r="7" fill="#fff" />
+        <circle cx={cx + 7} cy={cy + 7} r="3.2" fill="#fff" opacity="0.9" />
+      </g>
+      {mode === 'star' && (
+        <path transform={`translate(${cx} ${cy}) scale(1.5)`} d="M0,-8 Q1.6,-1.6 8,0 Q1.6,1.6 0,8 Q-1.6,1.6 -8,0 Q-1.6,-1.6 0,-8 Z" fill="#FFE36B" stroke="#F7B733" strokeWidth="1" />
+      )}
+    </g>
+  );
 }
 
-export default function GuideCharacter({ expression, message, size = 120 }: GuideCharacterProps) {
-  const leftEyeControls = useAnimation();
-  const rightEyeControls = useAnimation();
+/* ── CSS animations (injected once into <head>) ────────────────────────────── */
+const OWL_CSS = `
+.pip-root{animation:pipIdle 2.8s ease-in-out infinite}
+@keyframes pipIdle{0%,100%{transform:translateY(0) scaleX(1) scaleY(1)}50%{transform:translateY(-7px) scaleX(.99) scaleY(1.01)}}
+.pip-happy{animation:pipHop .6s cubic-bezier(.3,1.4,.5,1) 2}
+@keyframes pipHop{0%,100%{transform:translateY(0)}35%{transform:translateY(-16px) scaleY(1.04)}60%{transform:translateY(0) scaleY(.96)}}
+.pip-excited{animation:pipBuzz .5s ease-in-out infinite}
+@keyframes pipBuzz{0%,100%{transform:translateY(0) scale(1)}25%{transform:translateY(-9px) scale(1.03)}50%{transform:translateY(0) scale(1)}75%{transform:translateY(-5px) scale(1.02)}}
+.pip-curious{animation:pipTilt 3.2s ease-in-out infinite}
+@keyframes pipTilt{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(-10deg) translateY(-3px)}}
+.pip-nudge{animation:pipLean 1.1s ease-in-out infinite}
+@keyframes pipLean{0%,100%{transform:rotate(7deg) translateX(6px)}50%{transform:rotate(9deg) translateX(10px)}}
+.pip-celebrate{animation:pipJump .7s cubic-bezier(.3,1.3,.5,1) infinite}
+@keyframes pipJump{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-22px) rotate(-6deg)}50%{transform:translateY(0) rotate(0)}75%{transform:translateY(-14px) rotate(6deg)}}
+.pip-wing{transition:transform .35s cubic-bezier(.34,1.4,.6,1)}
+.pip-wing-l{transform-origin:60px 122px}.pip-wing-r{transform-origin:180px 122px}
+.pip-excited .pip-wing-l,.pip-celebrate .pip-wing-l{transform:rotate(26deg)}
+.pip-excited .pip-wing-r,.pip-celebrate .pip-wing-r{transform:rotate(-26deg)}
+.pip-nudge .pip-wing-r{transform:rotate(-40deg) translateY(-6px)}
+.pip-celebrate .pip-wing-l{animation:pipFlapL .4s ease-in-out infinite}
+.pip-celebrate .pip-wing-r{animation:pipFlapR .4s ease-in-out infinite}
+@keyframes pipFlapL{0%,100%{transform:rotate(20deg)}50%{transform:rotate(40deg)}}
+@keyframes pipFlapR{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(-40deg)}}
+.pip-tuft{transition:transform .3s cubic-bezier(.34,1.5,.6,1)}
+.pip-tuft-l{transform-origin:95px 70px}.pip-tuft-r{transform-origin:145px 70px}
+.pip-excited .pip-tuft-l,.pip-celebrate .pip-tuft-l{transform:rotate(-12deg) translateY(-3px)}
+.pip-excited .pip-tuft-r,.pip-celebrate .pip-tuft-r{transform:rotate(12deg) translateY(-3px)}
+.pip-spark{transform-box:fill-box;transform-origin:center;animation:pipTwinkle 1.3s ease-in-out infinite}
+@keyframes pipTwinkle{0%,100%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1)}}
+.pip-confetti{transform-box:fill-box;transform-origin:center;animation:pipFall 1.1s linear infinite}
+@keyframes pipFall{0%{opacity:0;transform:translateY(-10px) rotate(0)}20%{opacity:1}100%{opacity:0;transform:translateY(150px) rotate(220deg)}}
+@media (prefers-reduced-motion: reduce){.pip-root,.pip-wing,.pip-tuft,.pip-spark,.pip-confetti{animation:none!important;transition:none!important}}
+`;
 
-  const leftEyeProps = getEyePath(expression, true);
-  const rightEyeProps = getEyePath(expression, false);
-  const leftPupil = getPupilOffset(expression, true);
-  const rightPupil = getPupilOffset(expression, false);
-
-  /* Blink cycle for idle + happy */
+function useOwlStyles() {
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    if (expression === 'idle' || expression === 'happy') {
-      const blink = async () => {
-        await leftEyeControls.start({ scaleY: 0.05, transition: { duration: 0.08 } });
-        await rightEyeControls.start({ scaleY: 0.05, transition: { duration: 0.08 } });
-        await leftEyeControls.start({ scaleY: leftEyeProps.scaleY, transition: { duration: 0.1 } });
-        await rightEyeControls.start({ scaleY: rightEyeProps.scaleY, transition: { duration: 0.1 } });
-        timeout = setTimeout(blink, 2800 + Math.random() * 2000);
-      };
-      timeout = setTimeout(blink, 1500 + Math.random() * 1000);
-    }
-    return () => clearTimeout(timeout);
-  }, [expression, leftEyeControls, rightEyeControls, leftEyeProps.scaleY, rightEyeProps.scaleY]);
+    if (document.getElementById('pip-owl-styles')) return;
+    const el = document.createElement('style');
+    el.id = 'pip-owl-styles';
+    el.textContent = OWL_CSS;
+    document.head.appendChild(el);
+  }, []);
+}
 
-  const bodyColor = '#8B6B3F';
-  const wingColor = '#5C3D1A';
-  const bellyColor = '#F2E0B0';
-  const facialDiscColor = '#EDD9A3';
-  const eyeRingColor = '#3D2008';
-  const eyeWhite = '#FFFEF5';
-  const pupilColor = '#0D0D18';
-  const beakColor = '#E09018';
-  const branchColor = '#7B5430';
-  // Owls have golden/amber eyes — much more owl-like than blue
-  const irisColor = expression === 'excited' ? '#FFB800'
-    : expression === 'celebrate' ? '#F4900C'
-    : expression === 'curious' ? '#D4930A'
-    : '#DAA520';
+/* ── Component ─────────────────────────────────────────────────────────────── */
+export default function GuideCharacter({ expression, message, size = 120, theme = 'sky' }: GuideCharacterProps) {
+  useOwlStyles();
+  const t = OWL_THEMES[theme] ?? OWL_THEMES.sky;
+  const cfg = eyeConfig(expression);
+  const openBeak = expression === 'excited' || expression === 'celebrate';
+  const sparkle = expression === 'excited' || expression === 'celebrate';
+  const confetti = expression === 'celebrate';
 
-  const celebrateSparkles = ['⭐', '✨', '🌟', '💫'];
+  const [blink, setBlink] = useState(false);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const loop = () => {
+      setBlink(true);
+      setTimeout(() => setBlink(false), 130);
+      timer = setTimeout(loop, 2600 + Math.random() * 2400);
+    };
+    timer = setTimeout(loop, 1800);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="flex flex-col items-center select-none" style={{ width: size, minWidth: size }}>
@@ -163,161 +243,89 @@ export default function GuideCharacter({ expression, message, size = 120 }: Guid
         aria-live="polite"
         aria-atomic="true"
       >
-        <p className="font-heading text-sm text-gray-700 leading-tight text-center font-semibold">
-          {message}
-        </p>
-        {/* Bubble tail */}
-        <div
-          className="absolute left-1/2 -translate-x-1/2 w-0 h-0"
-          style={{
-            bottom: '-10px',
-            borderLeft: '8px solid transparent',
-            borderRight: '8px solid transparent',
-            borderTop: '10px solid #bae6fd',
-          }}
-        />
-        <div
-          className="absolute left-1/2 -translate-x-1/2 w-0 h-0"
-          style={{
-            bottom: '-8px',
-            borderLeft: '7px solid transparent',
-            borderRight: '7px solid transparent',
-            borderTop: '9px solid white',
-          }}
-        />
+        <p className="font-heading text-sm text-gray-700 leading-tight text-center font-semibold">{message}</p>
+        <div className="absolute left-1/2 -translate-x-1/2 w-0 h-0" style={{ bottom: '-10px', borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '10px solid #bae6fd' }} />
+        <div className="absolute left-1/2 -translate-x-1/2 w-0 h-0" style={{ bottom: '-8px', borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '9px solid white' }} />
       </motion.div>
 
-      {/* Pip SVG — purely decorative; the speech bubble above carries the message */}
-      <motion.svg
-        viewBox="0 0 110 140"
+      {/* Pip — decorative; the speech bubble carries the accessible message */}
+      <svg
+        viewBox="0 0 240 250"
         width={size}
-        height={size * 1.27}
+        height={size * 1.04}
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
         focusable="false"
-        animate={
-          expression === 'celebrate'
-            ? { rotate: [0, -8, 8, -6, 6, 0], scale: [1, 1.05, 1] }
-            : expression === 'excited'
-            ? { scale: [1, 1.06, 1, 1.04, 1] }
-            : expression === 'nudge'
-            ? { x: [0, -4, 4, -3, 3, 0] }
-            : {}
-        }
-        transition={{ duration: 0.6, repeat: expression === 'celebrate' ? 2 : 0 }}
+        style={{ overflow: 'visible', ['--beak-top' as string]: t.beakTop, ['--beak-bot' as string]: t.beakBot }}
       >
-        {/* Branch to perch on */}
-        <rect x="2" y="132" width="106" height="8" rx="4" fill={branchColor} />
+        <g className={`pip-root pip-${expression}`} style={{ transformOrigin: '120px 205px' }}>
+          {/* ground shadow */}
+          <ellipse cx="120" cy="232" rx="62" ry="11" fill="#000" opacity="0.1" />
 
-        {/* Talons gripping branch */}
-        <path d="M 36,132 L 33,137 M 40,132 L 40,138 M 44,132 L 47,137"
-          stroke={beakColor} strokeWidth="2.5" strokeLinecap="round" fill="none" />
-        <path d="M 63,132 L 66,137 M 70,132 L 70,138 M 74,132 L 77,137"
-          stroke={beakColor} strokeWidth="2.5" strokeLinecap="round" fill="none" />
+          {/* feet */}
+          <g stroke={t.feet} strokeWidth="6" strokeLinecap="round" fill="none">
+            <path d="M 100 214 l -7 11 M 100 214 l 0 13 M 100 214 l 7 11" />
+            <path d="M 140 214 l -7 11 M 140 214 l 0 13 M 140 214 l 7 11" />
+          </g>
 
-        {/* Body — plump and round */}
-        <ellipse cx="55" cy="103" rx="30" ry="33" fill={bodyColor} />
+          {/* ear tufts */}
+          <path className="pip-tuft pip-tuft-l" d="M 92 70 C 76 62 68 44 73 33 C 88 41 100 56 106 72 Z" fill={t.body} stroke={t.outline} strokeWidth="3" strokeLinejoin="round" />
+          <path className="pip-tuft pip-tuft-r" d="M 148 70 C 164 62 172 44 167 33 C 152 41 140 56 134 72 Z" fill={t.body} stroke={t.outline} strokeWidth="3" strokeLinejoin="round" />
+          <path d="M 90 66 C 80 58 75 47 77 40 C 86 47 94 57 98 67 Z" fill="#fff" opacity="0.18" />
+          <path d="M 150 66 C 160 58 165 47 163 40 C 154 47 146 57 142 67 Z" fill="#fff" opacity="0.18" />
 
-        {/* Folded wing panels (darker sections on sides of body) */}
-        <motion.ellipse
-          cx="27" cy="107" rx="10" ry="22"
-          fill={wingColor}
-          style={{ transformOrigin: '27px 88px' }}
-          animate={expression === 'celebrate' ? { rotate: [-15, -30, -15] } : { rotate: 0 }}
-          transition={{ duration: 0.6, repeat: expression === 'celebrate' ? 3 : 0 }}
-        />
-        <motion.ellipse
-          cx="83" cy="107" rx="10" ry="22"
-          fill={wingColor}
-          style={{ transformOrigin: '83px 88px' }}
-          animate={expression === 'celebrate' ? { rotate: [15, 30, 15] } : { rotate: 0 }}
-          transition={{ duration: 0.6, repeat: expression === 'celebrate' ? 3 : 0 }}
-        />
+          {/* wings */}
+          <path className="pip-wing pip-wing-l" d="M 54 116 C 30 124 26 168 40 192 C 46 184 50 190 56 180 C 60 187 66 184 68 174 C 60 152 58 130 54 116 Z" fill={t.wing} stroke={t.outline} strokeWidth="3" strokeLinejoin="round" />
+          <path className="pip-wing pip-wing-r" d="M 186 116 C 210 124 214 168 200 192 C 194 184 190 190 184 180 C 180 187 174 184 172 174 C 180 152 182 130 186 116 Z" fill={t.wing} stroke={t.outline} strokeWidth="3" strokeLinejoin="round" />
 
-        {/* Belly — cream with subtle feather row curves */}
-        <ellipse cx="55" cy="109" rx="19" ry="24" fill={bellyColor} />
-        <path d="M 39,100 Q 55,96 71,100" stroke={bodyColor} strokeWidth="1.5" fill="none" opacity="0.35" />
-        <path d="M 37,111 Q 55,107 73,111" stroke={bodyColor} strokeWidth="1.5" fill="none" opacity="0.35" />
-        <path d="M 39,121 Q 55,117 71,121" stroke={bodyColor} strokeWidth="1.5" fill="none" opacity="0.35" />
+          {/* body */}
+          <path d="M 120 54 C 164 54 190 90 196 138 C 202 188 170 226 120 226 C 70 226 38 188 44 138 C 50 90 76 54 120 54 Z" fill={t.body} stroke={t.outline} strokeWidth="3" strokeLinejoin="round" />
 
-        {/* Head */}
-        <circle cx="55" cy="52" r="30" fill={bodyColor} />
+          {/* belly */}
+          <path d="M 120 120 C 86 120 70 142 70 170 C 70 198 94 214 120 214 C 146 214 170 198 170 170 C 170 142 154 120 120 120 Z" fill={C.belly} />
+          <path d="M 86 150 Q 103 142 120 150 Q 137 142 154 150" stroke={C.bellyLn} strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.8" />
+          <path d="M 90 168 Q 105 160 120 168 Q 135 160 150 168" stroke={C.bellyLn} strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.7" />
+          <path d="M 96 186 Q 108 179 120 186 Q 132 179 144 186" stroke={C.bellyLn} strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.6" />
 
-        {/* Ear tufts — soft rounded feather bumps */}
-        <path d="M 33,30 Q 34,17 38,11 Q 43,17 44,30" fill={bodyColor} />
-        <path d="M 66,30 Q 67,17 72,11 Q 76,17 77,30" fill={bodyColor} />
-        {/* Inner tuft shading */}
-        <path d="M 35,30 Q 36,20 38,15 Q 41,20 42,30" fill={wingColor} opacity="0.55" />
-        <path d="M 68,30 Q 69,20 72,15 Q 74,20 75,30" fill={wingColor} opacity="0.55" />
+          {/* facial disc */}
+          <ellipse cx="120" cy="112" rx="66" ry="52" fill={t.face} opacity="0.85" />
 
-        {/* Facial disc — the characteristic lighter oval around the face */}
-        <ellipse cx="55" cy="54" rx="27" ry="22" fill={facialDiscColor} />
-
-        {/* Dark feather rings around eyes — the most owl-like feature */}
-        <circle cx="40" cy="52" r="13" fill={eyeRingColor} />
-        <circle cx="70" cy="52" r="13" fill={eyeRingColor} />
-
-        {/* LEFT EYE */}
-        <g transform="translate(40, 52)">
-          <circle cx="0" cy={leftEyeProps.cy} r="11" fill={eyeWhite} />
-          <motion.g
-            animate={leftEyeControls}
-            initial={{ scaleY: leftEyeProps.scaleY }}
-            style={{ transformOrigin: `0px ${leftEyeProps.cy}px` }}
-          >
-            <circle cx={leftPupil.dx} cy={leftEyeProps.cy + leftPupil.dy} r="7" fill={irisColor} />
-            <circle cx={leftPupil.dx} cy={leftEyeProps.cy + leftPupil.dy} r="4" fill={pupilColor} />
-            <circle cx={leftPupil.dx + 2} cy={leftEyeProps.cy + leftPupil.dy - 2} r="1.5" fill="white" opacity="0.85" />
-          </motion.g>
-          {(expression === 'happy' || expression === 'celebrate') && (
-            <path d={`M -10 ${leftEyeProps.cy - 2} Q 0 ${leftEyeProps.cy - 12} 10 ${leftEyeProps.cy - 2}`}
-              stroke={wingColor} strokeWidth="2" fill="none" />
+          {/* curious eyebrow */}
+          {expression === 'curious' && (
+            <path d="M 132 72 Q 150 64 166 72" stroke={t.outline} strokeWidth="4.5" fill="none" strokeLinecap="round" />
           )}
+
+          {/* eyes */}
+          <Eye cx={90}  cy={112} mode={cfg.left}  look={cfg.look} blink={blink && cfg.left === 'open'} />
+          <Eye cx={150} cy={112} mode={cfg.right} look={cfg.look} blink={blink && cfg.right === 'open'} />
+
+          {/* cheeks */}
+          <ellipse cx="66"  cy="138" rx="15" ry="9" fill={C.cheek} opacity={expression === 'happy' || expression === 'celebrate' ? 0.65 : 0.42} />
+          <ellipse cx="174" cy="138" rx="15" ry="9" fill={C.cheek} opacity={expression === 'happy' || expression === 'celebrate' ? 0.65 : 0.42} />
+
+          {/* beak */}
+          <path d="M 107 137 Q 120 133 133 137 L 127 153 Q 120 159 113 153 Z" fill={t.beakTop} />
+          <path d="M 110 147 Q 120 151 130 147 L 127 153 Q 120 159 113 153 Z" fill={t.beakBot} />
+          {openBeak && <ellipse cx="120" cy="159" rx="8" ry="6" fill="#C84A38" />}
+
+          {/* sparkles */}
+          {sparkle && [
+            { x: 36,  y: 70,  s: 1.1, d: '0s' },
+            { x: 206, y: 84,  s: 1.4, d: '.3s' },
+            { x: 200, y: 150, s: 0.9, d: '.6s' },
+            { x: 30,  y: 150, s: 1.0, d: '.45s' },
+          ].map((p, i) => (
+            <path key={i} className="pip-spark" transform={`translate(${p.x} ${p.y}) scale(${p.s})`} style={{ animationDelay: p.d }} d="M0,-9 Q1.7,-1.7 9,0 Q1.7,1.7 0,9 Q-1.7,1.7 -9,0 Q-1.7,-1.7 0,-9 Z" fill="#FFE36B" stroke="#F7B733" strokeWidth="1" />
+          ))}
+
+          {/* confetti */}
+          {confetti && ['#FF6B63', '#54C5F0', '#74CE7E', '#FFC04D', '#FF8C8C'].map((c, i) => (
+            <rect key={i} className="pip-confetti" x={48 + i * 36} y="28" width="9" height="9" rx="2" fill={c} style={{ animationDelay: `${i * 0.12}s` }} transform={`rotate(${i * 25} ${52 + i * 36} 32)`} />
+          ))}
         </g>
-
-        {/* RIGHT EYE */}
-        <g transform="translate(70, 52)">
-          <circle cx="0" cy={rightEyeProps.cy} r="11" fill={eyeWhite} />
-          <motion.g
-            animate={rightEyeControls}
-            initial={{ scaleY: rightEyeProps.scaleY }}
-            style={{ transformOrigin: `0px ${rightEyeProps.cy}px` }}
-          >
-            <circle cx={rightPupil.dx} cy={rightEyeProps.cy + rightPupil.dy} r="7" fill={irisColor} />
-            <circle cx={rightPupil.dx} cy={rightEyeProps.cy + rightPupil.dy} r="4" fill={pupilColor} />
-            <circle cx={rightPupil.dx + 2} cy={rightEyeProps.cy + rightPupil.dy - 2} r="1.5" fill="white" opacity="0.85" />
-          </motion.g>
-          {(expression === 'happy' || expression === 'celebrate') && (
-            <path d={`M -10 ${rightEyeProps.cy - 2} Q 0 ${rightEyeProps.cy - 12} 10 ${rightEyeProps.cy - 2}`}
-              stroke={wingColor} strokeWidth="2" fill="none" />
-          )}
-        </g>
-
-        {/* Curious eyebrow — right side raised */}
-        {expression === 'curious' && (
-          <path d="M 57,30 Q 68,26 79,29" stroke={wingColor} strokeWidth="2.5" fill="none" strokeLinecap="round" />
-        )}
-
-        {/* Beak — small hooked triangle nestled between the eyes */}
-        <polygon points="55,65 50,72 60,72" fill={beakColor} />
-        <line x1="50" y1="68.5" x2="60" y2="68.5" stroke="#C07010" strokeWidth="1.5" />
-
-        {/* Celebrate sparkles */}
-        {expression === 'celebrate' && celebrateSparkles.map((s, i) => (
-          <motion.text
-            key={i}
-            x={i < 2 ? (i === 0 ? 0 : 95) : (i === 2 ? 5 : 88)}
-            y={i < 2 ? (i === 0 ? 30 : 35) : (i === 2 ? 65 : 60)}
-            fontSize="14"
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: [0, 1, 0], scale: [0, 1.3, 0] }}
-            transition={{ delay: i * 0.15, duration: 1, repeat: 2 }}
-            style={{ transformOrigin: 'center' }}
-          >
-            {s}
-          </motion.text>
-        ))}
-      </motion.svg>
+      </svg>
     </div>
   );
 }
+
+export { OWL_THEMES, LETTER_MESSAGES, NUMBER_MESSAGES };

@@ -3,6 +3,11 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { FaceLandmarker, FaceLandmarkerResult } from "@mediapipe/tasks-vision";
 
+// Pin to the exact installed @mediapipe/tasks-vision version so the WASM
+// binary and JS runtime never mismatch (using @latest caused breaks when
+// jsdelivr resolved to a newer version than what's installed locally).
+const MEDIAPIPE_VERSION = "0.10.35";
+const WASM_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 
@@ -36,9 +41,7 @@ export function useFaceFilter(): FaceFilterState {
     async function loadModel(): Promise<void> {
       try {
         const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
-        const vision = await FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-        );
+        const vision = await FilesetResolver.forVisionTasks(WASM_BASE);
         const landmarker = await FaceLandmarker.createFromOptions(vision, {
           baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
           runningMode: "VIDEO",
@@ -55,9 +58,7 @@ export function useFaceFilter(): FaceFilterState {
           // Retry with CPU delegate on GPU failure
           try {
             const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
-            const vision = await FilesetResolver.forVisionTasks(
-              "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-            );
+            const vision = await FilesetResolver.forVisionTasks(WASM_BASE);
             const landmarker = await FaceLandmarker.createFromOptions(vision, {
               baseOptions: { modelAssetPath: MODEL_URL, delegate: "CPU" },
               runningMode: "VIDEO",

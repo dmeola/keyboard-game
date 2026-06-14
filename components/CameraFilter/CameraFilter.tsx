@@ -121,9 +121,12 @@ export default function CameraFilter({
       {!isRunning && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/10 p-8 backdrop-blur-sm">
           {isActive ? (
-            <p className="text-center text-sm text-white/50">
-              {isReady ? "Starting camera…" : "Loading AI…"}
-            </p>
+            <>
+              <p className="text-center text-sm text-white/50">
+                {error ? "⚠️ Camera error" : isReady ? "Starting camera…" : "Loading AI…"}
+              </p>
+              {error && <p className="text-center text-xs text-red-300">{error}</p>}
+            </>
           ) : (
             <>
               <span className="text-5xl">📷</span>
