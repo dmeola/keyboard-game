@@ -23,6 +23,9 @@ import GuideCharacter, { getPipMessage } from '@/components/GuideCharacter/Guide
 import type { PipExpression } from '@/components/GuideCharacter/GuideCharacter';
 import KeyboardVisual from '@/components/KeyboardVisual/KeyboardVisual';
 import SessionTimer from '@/components/SessionTimer/SessionTimer';
+import SpellDisplay from '@/components/SpellDisplay/SpellDisplay';
+import { wordList } from '@/lib/wordData';
+import type { WordEntry } from '@/lib/wordData';
 
 /* ── Camera filter integration point ─────────────────────────── */
 let CameraFilterComponent: React.ComponentType<{ activeLetter: string | null; isActive?: boolean }> | null = null;
@@ -111,6 +114,13 @@ function pickQuestTarget(exclude?: string): string {
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
+/* ── Pick next spelling word (random, avoid immediate repeat) ── */
+function pickSpellWord(exclude?: string): WordEntry {
+  const candidates = wordList.filter((w) => w.word !== exclude);
+  const pool = candidates.length > 0 ? candidates : wordList;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 /* ── Mobile on-screen alphabet grid ──────────────────────────── */
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const DIGITS = '0123456789'.split('');
@@ -178,6 +188,11 @@ function PlayPageInner() {
   const [questEntry, setQuestEntry] = useState<LetterEntry | null>(null);
   const [questCorrect, setQuestCorrect] = useState(false);
 
+  // Spell mode state
+  const [spellEntry, setSpellEntry] = useState<WordEntry | null>(null);
+  const [spellIndex, setSpellIndex] = useState(0);
+  const [spellCorrect, setSpellCorrect] = useState(false);
+
   // Camera filter state
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraAvailable, setCameraAvailable] = useState(false);
@@ -206,6 +221,17 @@ function PlayPageInner() {
       setQuestEntry(letterData[t]);
     }
   }, [urlMode, questTarget]);
+
+  /* Initialize spell word + intro message */
+  useEffect(() => {
+    if (urlMode === 'spell' && !spellEntry) {
+      const w = pickSpellWord();
+      setSpellEntry(w);
+      setSpellIndex(0);
+      setPipExpression('curious');
+      setPipMessage(`Let's spell ${w.word}! ${w.emoji} Start with ${w.word[0]}!`);
+    }
+  }, [urlMode, spellEntry]);
 
   /* Load mastery data */
   useEffect(() => {
@@ -324,12 +350,49 @@ function PlayPageInner() {
           setPipExpression('nudge');
           setPipMessage(`That's ${upper}… ${letterData[upper]?.word ?? ''}! Try again! Hint: ${questEntry?.word ?? ''} starts with ${questTarget}!`);
         }
+      } else if (urlMode === 'spell' && spellEntry) {
+        if (type === 'letter') {
+          const expected = spellEntry.word[spellIndex];
+          if (upper === expected) {
+            const nextIndex = spellIndex + 1;
+            const wordComplete = nextIndex >= spellEntry.word.length;
+            setSpellIndex(nextIndex);
+
+            if (wordComplete) {
+              playCelebrationSound();
+              setPipExpression('celebrate');
+              setPipMessage(`🎉 You spelled ${spellEntry.word}! ${spellEntry.emoji} Amazing!`);
+              setSpellCorrect(true);
+              setTimeout(() => {
+                setSpellCorrect(false);
+                const nextWord = pickSpellWord(spellEntry.word);
+                setSpellEntry(nextWord);
+                setSpellIndex(0);
+                setPipExpression('curious');
+                setPipMessage(`Now spell ${nextWord.word}! ${nextWord.emoji} Start with ${nextWord.word[0]}!`);
+              }, 2500);
+            } else {
+              const nextLetter = spellEntry.word[nextIndex];
+              setPipExpression('happy');
+              setPipMessage(`Yes! ${upper}! Now press ${nextLetter}!`);
+            }
+          } else {
+            setPipExpression('nudge');
+            setPipMessage(`That's ${upper}. We need ${expected} next! Try again!`);
+          }
+        } else if (type === 'number') {
+          setPipExpression('curious');
+          setPipMessage(`We're spelling words! Try pressing a letter — ${spellEntry.word[spellIndex]}!`);
+        } else {
+          setPipExpression(expression);
+          setPipMessage(message);
+        }
       } else {
         setPipExpression(expression);
         setPipMessage(message);
       }
     },
-    [urlMode, questTarget, questEntry, focusMode, enterFullscreen, setActiveKey, setActiveEntry, setKeyType, setPressCount]
+    [urlMode, questTarget, questEntry, spellEntry, spellIndex, focusMode, enterFullscreen, setActiveKey, setActiveEntry, setKeyType, setPressCount]
   );
 
   /* Core keyboard handler */
@@ -386,10 +449,14 @@ function PlayPageInner() {
       transition={{ duration: 0.35, ease: 'easeOut' }}
     >
       <h1 className="sr-only">
-        {urlMode === 'quest' ? 'KeyJr — Quest Mode' : 'KeyJr — Explorer Mode'}
+        {urlMode === 'quest'
+          ? 'KeyJr — Quest Mode'
+          : urlMode === 'spell'
+            ? 'KeyJr — Spell Mode'
+            : 'KeyJr — Explorer Mode'}
       </h1>
-      {/* Confetti for quest correct */}
-      <Confetti active={questCorrect} />
+      {/* Confetti for quest correct or spell word completion */}
+      <Confetti active={questCorrect || spellCorrect} />
 
       {/* Camera filter overlay */}
       <AnimatePresence>
@@ -447,6 +514,15 @@ function PlayPageInner() {
           <QuestTarget targetKey={questTarget} entry={questEntry} />
         )}
 
+        {/* Spell target */}
+        {urlMode === 'spell' && spellEntry && (
+          <SpellDisplay
+            word={spellEntry.word}
+            revealedCount={spellIndex}
+            emoji={spellEntry.emoji}
+          />
+        )}
+
         {/* Session progress stars */}
         <SessionTimer pressCount={pressCount} />
       </div>
@@ -475,7 +551,7 @@ function PlayPageInner() {
                 entry={activeEntry}
                 keyType={keyType}
                 pressSequence={pressCount}
-                fadeOut={urlMode === 'quest'}
+                fadeOut={urlMode === 'quest' || urlMode === 'spell'}
               />
             </div>
 

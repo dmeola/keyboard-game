@@ -88,7 +88,7 @@ export default function HomePage() {
       </motion.div>
 
       {/* Mode cards */}
-      <ul className="flex flex-col sm:flex-row gap-4 md:gap-6 w-full max-w-xl mb-8 list-none p-0 m-0 sm:items-stretch">
+      <ul className="flex flex-col sm:flex-row gap-4 md:gap-6 w-full max-w-3xl mb-8 list-none p-0 m-0 sm:items-stretch">
         {/* Explorer */}
         <li className="flex-1 flex flex-col">
           <motion.div
@@ -151,6 +151,40 @@ export default function HomePage() {
                 </div>
                 <p className="font-heading text-white text-center text-sm md:text-base">
                   Can you find the letter?
+                </p>
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" aria-hidden="true" />
+              </motion.div>
+            </Link>
+          </motion.div>
+        </li>
+
+        {/* Spell */}
+        <li className="flex-1 flex flex-col">
+          <motion.div
+            custom={2}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            className="flex-1 flex flex-col"
+          >
+            <Link
+              href="/play?mode=spell"
+              className="block group flex-1"
+              aria-label="Spell mode — for ages 4 to 6 and up. Type the letters to spell words!"
+            >
+              <motion.div
+                className="relative h-full bg-gradient-to-br from-grass-400 to-purple-500 rounded-3xl shadow-xl p-6 flex flex-col items-center justify-center gap-3 border-4 border-grass-400 cursor-pointer overflow-hidden"
+                whileHover={{ scale: 1.04, y: -4 }}
+                whileTap={{ scale: 0.94 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              >
+                <span className="text-6xl select-none" aria-hidden="true">✏️</span>
+                <div className="text-center">
+                  <p className="font-heading font-bold text-white text-2xl md:text-3xl">Spell</p>
+                  <p className="font-heading text-white text-sm mt-0.5">Ages 4–6+</p>
+                </div>
+                <p className="font-heading text-white text-center text-sm md:text-base">
+                  Type the letters to spell words!
                 </p>
                 <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" aria-hidden="true" />
               </motion.div>

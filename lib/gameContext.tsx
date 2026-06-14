@@ -4,7 +4,7 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 import type { LetterEntry, NumberEntry } from './types';
 
 export type KeyType = 'letter' | 'number' | 'special' | null;
-export type GameMode = 'explorer' | 'quest';
+export type GameMode = 'explorer' | 'quest' | 'spell';
 
 type GameContextValue = {
   activeKey: string | null;

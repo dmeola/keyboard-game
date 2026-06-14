@@ -244,6 +244,20 @@ export default function SettingsPage() {
               <br />
               <span className="text-xs font-normal">Ages 4–6</span>
             </motion.button>
+            <motion.button
+              className={`flex-1 font-heading font-semibold rounded-xl py-3 px-4 border-2 transition-colors ${
+                mode === 'spell'
+                  ? 'bg-grass-300 border-grass-400 text-grass-900'
+                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+              }`}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => handleModeChange('spell')}
+              aria-pressed={mode === 'spell'}
+            >
+              <span aria-hidden="true">✏️</span> Spell
+              <br />
+              <span className="text-xs font-normal">Ages 4–6+</span>
+            </motion.button>
           </div>
         </motion.div>
 
