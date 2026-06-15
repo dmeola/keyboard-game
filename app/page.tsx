@@ -1,6 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import GuideCharacter from '@/components/GuideCharacter/GuideCharacter';
 
@@ -15,6 +17,20 @@ const cardVariants = {
 };
 
 export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only react to single printable characters; ignore function keys, arrows, etc.
+      if (e.key.length !== 1) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      router.push('/play?mode=explorer');
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [router]);
+
   return (
     <main
       id="main-content"
@@ -50,7 +66,7 @@ export default function HomePage() {
         >
           <GuideCharacter
             expression="excited"
-            message="Hi! I'm Pip! 👋 Press any key!"
+            message="Hi! I'm Pip! 👋 Press any key or pick a mode!"
             size={90}
           />
         </motion.div>
