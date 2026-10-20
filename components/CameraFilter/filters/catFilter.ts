@@ -1,98 +1,106 @@
 import type { FaceMetrics } from "../faceMetrics";
+import { faceRx, headTop } from "./shared";
 
 export function drawCatFilter(
   ctx: CanvasRenderingContext2D,
   m: FaceMetrics
 ): void {
   ctx.save();
-  const r = m.faceWidth * 0.5;
-  const earH = r * 0.65;
-  const earW = r * 0.42;
-  const earTopY = m.cy - m.faceHeight * 0.5;
-
-  // Left ear (triangle)
-  ctx.beginPath();
-  ctx.moveTo(m.cx - r * 0.55, earTopY);
-  ctx.lineTo(m.cx - r * 0.1, earTopY + earH);
-  ctx.lineTo(m.cx - r * 1.05, earTopY + earH);
-  ctx.closePath();
-  ctx.fillStyle = "#FFA726";
-  ctx.fill();
-
-  // Left ear inner
-  ctx.beginPath();
-  ctx.moveTo(m.cx - r * 0.55, earTopY + earH * 0.18);
-  ctx.lineTo(m.cx - r * 0.2, earTopY + earH * 0.85);
-  ctx.lineTo(m.cx - r * 0.9, earTopY + earH * 0.85);
-  ctx.closePath();
-  ctx.fillStyle = "#FF7043";
-  ctx.fill();
-
-  // Right ear
-  ctx.beginPath();
-  ctx.moveTo(m.cx + r * 0.55, earTopY);
-  ctx.lineTo(m.cx + r * 0.1, earTopY + earH);
-  ctx.lineTo(m.cx + r * 1.05, earTopY + earH);
-  ctx.closePath();
-  ctx.fillStyle = "#FFA726";
-  ctx.fill();
-
-  // Right ear inner
-  ctx.beginPath();
-  ctx.moveTo(m.cx + r * 0.55, earTopY + earH * 0.18);
-  ctx.lineTo(m.cx + r * 0.2, earTopY + earH * 0.85);
-  ctx.lineTo(m.cx + r * 0.9, earTopY + earH * 0.85);
-  ctx.closePath();
-  ctx.fillStyle = "#FF7043";
-  ctx.fill();
-
-  // Small triangle nose
-  const noseY = m.cy + m.faceHeight * 0.08;
-  ctx.beginPath();
-  ctx.moveTo(m.cx, noseY + 10);
-  ctx.lineTo(m.cx - 10, noseY);
-  ctx.lineTo(m.cx + 10, noseY);
-  ctx.closePath();
-  ctx.fillStyle = "#FF7043";
-  ctx.fill();
-
-  // Whiskers — left side
-  const whiskerY = noseY + 6;
-  ctx.strokeStyle = "rgba(255,255,255,0.85)";
-  ctx.lineWidth = 2.5;
+  const u = m.u;
+  const top = headTop(m);
+  const { nose, mouth } = m;
+  ctx.lineJoin = "round";
   ctx.lineCap = "round";
-  [[-25, -8], [-25, 0], [-25, 8]].forEach(([dx, dy]) => {
+
+  // Pointy ears sitting on top of the head
+  [-1, 1].forEach((s) => {
     ctx.beginPath();
-    ctx.moveTo(m.cx - 12, whiskerY + dy);
-    ctx.lineTo(m.cx + dx - 60, whiskerY + dy + dx * 0.2);
+    ctx.moveTo(s * u * 50, top + u * 12);
+    ctx.lineTo(s * u * 34, top - u * 28);
+    ctx.lineTo(s * u * 12, top + u * 3);
+    ctx.closePath();
+    ctx.fillStyle = "#FFA726";
+    ctx.fill();
+    ctx.strokeStyle = "#E65100";
+    ctx.lineWidth = u * 1.5;
     ctx.stroke();
+
+    // Inner ear
+    ctx.beginPath();
+    ctx.moveTo(s * u * 43, top + u * 7);
+    ctx.lineTo(s * u * 34, top - u * 17);
+    ctx.lineTo(s * u * 19, top + u * 3);
+    ctx.closePath();
+    ctx.fillStyle = "#FFAB91";
+    ctx.fill();
   });
 
-  // Whiskers — right side
-  [[25, -8], [25, 0], [25, 8]].forEach(([dx, dy]) => {
-    ctx.beginPath();
-    ctx.moveTo(m.cx + 12, whiskerY + dy);
-    ctx.lineTo(m.cx + dx + 60, whiskerY + dy - dx * 0.2);
-    ctx.stroke();
+  // Whiskers — dark outline under white so they show on any background
+  [-1, 1].forEach((s) => {
+    [-1, 0, 1].forEach((k) => {
+      const sx = nose.x + s * u * 10;
+      const sy = nose.y + u * 3 + k * u * 3;
+      const ex = nose.x + s * u * 46;
+      const ey = nose.y + u * 3 + k * u * 9;
+      [
+        { color: "rgba(60,40,30,0.6)", width: u * 1.8 },
+        { color: "#FFFFFF", width: u * 1 },
+      ].forEach(({ color, width }) => {
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.quadraticCurveTo((sx + ex) / 2, (sy + ey) / 2 - u * 2, ex, ey);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.stroke();
+      });
+    });
   });
 
-  // Mouth
-  const mouthY = noseY + 14;
+  // Little pink triangle nose
   ctx.beginPath();
-  ctx.moveTo(m.cx, mouthY);
-  ctx.bezierCurveTo(m.cx - 12, mouthY + 10, m.cx - 22, mouthY + 8, m.cx - 24, mouthY + 4);
-  ctx.moveTo(m.cx, mouthY);
-  ctx.bezierCurveTo(m.cx + 12, mouthY + 10, m.cx + 22, mouthY + 8, m.cx + 24, mouthY + 4);
-  ctx.strokeStyle = "#7B1F22";
-  ctx.lineWidth = 2.5;
+  ctx.moveTo(nose.x - u * 5, nose.y - u * 2);
+  ctx.lineTo(nose.x + u * 5, nose.y - u * 2);
+  ctx.lineTo(nose.x, nose.y + u * 4);
+  ctx.closePath();
+  ctx.fillStyle = "#FF8A80";
+  ctx.fill();
+  ctx.strokeStyle = "#C2185B";
+  ctx.lineWidth = u * 0.8;
   ctx.stroke();
 
-  // Wide mouth when open
+  // "w" cat mouth between the nose and the lips
+  const wY = mouth.y - u * 5;
+  ctx.beginPath();
+  ctx.moveTo(nose.x, nose.y + u * 4);
+  ctx.lineTo(mouth.x, wY);
+  ctx.bezierCurveTo(mouth.x - u * 3, wY + u * 4, mouth.x - u * 8, wY + u * 3, mouth.x - u * 10, wY);
+  ctx.moveTo(mouth.x, wY);
+  ctx.bezierCurveTo(mouth.x + u * 3, wY + u * 4, mouth.x + u * 8, wY + u * 3, mouth.x + u * 10, wY);
+  ctx.strokeStyle = "#5D2E0C";
+  ctx.lineWidth = u * 1.2;
+  ctx.stroke();
+
+  // Open mouth: little fangs and a "Meow!"
   if (m.mouthOpenRatio > 0.35) {
-    ctx.beginPath();
-    ctx.ellipse(m.cx, mouthY + earW * 0.15, earW * 0.25, earW * 0.18 * m.mouthOpenRatio, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "#7B1F22";
-    ctx.fill();
+    const lipY = mouth.y - u * 12 * m.mouthOpenRatio;
+    ctx.fillStyle = "#FFFFFF";
+    [-1, 1].forEach((s) => {
+      ctx.beginPath();
+      ctx.moveTo(mouth.x + s * u * 7, lipY);
+      ctx.lineTo(mouth.x + s * u * 3, lipY);
+      ctx.lineTo(mouth.x + s * u * 5, lipY + u * 5);
+      ctx.closePath();
+      ctx.fill();
+    });
+
+    ctx.font = `bold ${u * 13}px sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = u * 2.5;
+    ctx.strokeStyle = "#E65100";
+    ctx.strokeText("Meow!", faceRx(m) + u * 6, mouth.y);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText("Meow!", faceRx(m) + u * 6, mouth.y);
   }
 
   ctx.restore();

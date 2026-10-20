@@ -134,3 +134,40 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Play stage ───────────────────────────────────────────────────────────
+   The stage is a size container: everything inside is sized from the space
+   it actually has (cqmin), so the letter, emoji and number scene grow to fill
+   big desktop windows and shrink on short laptops without scrolling.
+   Portrait / narrow stages stack the card above the scene; wide stages put
+   them side by side. */
+.play-stage {
+  container-type: size;
+  container-name: stage;
+}
+
+.play-stage-inner {
+  --letter-size: min(26cqmin, 18rem);
+  --word-size: max(1.1rem, calc(var(--letter-size) * 0.24));
+  --emoji-size: calc(var(--letter-size) * 1.05);
+  --object-size: calc(var(--letter-size) * 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3cqmin;
+  height: 100%;
+}
+
+@container stage (min-aspect-ratio: 5/4) {
+  .play-stage-inner {
+    --letter-size: min(40cqmin, 26rem);
+    flex-direction: row;
+    gap: 8cqw;
+  }
+}
+
+/* On-screen keyboard keys scale with the window (desktop only) */
+.keyboard-visual {
+  --key: clamp(26px, min(4.2vw, 5.4vh), 72px);
+}

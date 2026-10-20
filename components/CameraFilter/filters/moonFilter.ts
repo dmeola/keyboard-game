@@ -1,76 +1,106 @@
 import type { FaceMetrics } from "../faceMetrics";
+import { headTop, faceRx, crescentPath, drawStar } from "./shared";
 
 export function drawMoonFilter(
   ctx: CanvasRenderingContext2D,
   m: FaceMetrics
 ): void {
   ctx.save();
-  const r = m.faceWidth * 0.58;
+  const u = m.u;
+  const r = u * 24;
+  const moonX = faceRx(m) * 0.95;
+  const moonY = headTop(m) + u * 2;
 
-  // Crescent moon: full circle minus offset circle
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(m.cx, m.cy, r, 0, Math.PI * 2);
-  const moonGrad = ctx.createRadialGradient(m.cx - r * 0.2, m.cy - r * 0.2, r * 0.05, m.cx, m.cy, r);
-  moonGrad.addColorStop(0, "#FFF9C4");
-  moonGrad.addColorStop(1, "#7986CB");
-  ctx.fillStyle = moonGrad;
-  ctx.fill();
-
-  // Cut out offset circle to create crescent
-  ctx.globalCompositeOperation = "destination-out";
-  ctx.beginPath();
-  ctx.arc(m.cx + r * 0.35, m.cy - r * 0.08, r * 0.78, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(0,0,0,1)";
-  ctx.fill();
-  ctx.restore();
-
-  // Stars scattered around
-  const starPositions: [number, number, number][] = [
-    [m.cx + r * 1.4, m.cy - r * 0.8, 8],
-    [m.cx + r * 1.7, m.cy + r * 0.2, 5],
-    [m.cx - r * 0.3, m.cy - r * 1.4, 6],
-    [m.cx - r * 0.8, m.cy - r * 1.2, 4],
-    [m.cx + r * 0.6, m.cy - r * 1.5, 5],
-    [m.cx + r * 1.3, m.cy - r * 0.2, 3],
-    [m.cx - r * 0.2, m.cy + r * 1.2, 4],
+  // Twinkling stars scattered around the head
+  const stars: [number, number, number][] = [
+    [-70, -60, 5],
+    [-58, -95, 3.5],
+    [-25, -110, 4.5],
+    [20, -122, 3],
+    [88, -40, 4],
+    [78, -10, 2.8],
+    [-80, -15, 3],
+    [96, -95, 3.2],
   ];
-
-  starPositions.forEach(([sx, sy, sr]) => {
-    drawStar(ctx, sx, sy, sr);
+  stars.forEach(([sx, sy, sr], i) => {
+    const twinkle = 0.7 + Math.sin(m.time * 3 + i * 1.7) * 0.3;
+    drawStar(ctx, sx * u, sy * u, sr * u * twinkle, "#FFF9C4", 0.45, i * 0.3);
   });
 
-  // Smile on the visible crescent part
-  const smileX = m.cx - r * 0.2;
-  const smileY = m.cy + r * 0.35;
+  ctx.save();
+  ctx.translate(moonX, moonY);
+  // Gentle rocking, like the moon is dozing on the child's head
+  ctx.rotate(-0.35 + Math.sin(m.time * 1.2) * 0.08);
+
+  // Soft glow
+  const glow = ctx.createRadialGradient(-r * 0.3, 0, r * 0.3, -r * 0.3, 0, r * 1.6);
+  glow.addColorStop(0, "rgba(255,249,196,0.25)");
+  glow.addColorStop(1, "rgba(255,249,196,0)");
+  ctx.beginPath();
+  ctx.arc(-r * 0.3, 0, r * 1.6, 0, Math.PI * 2);
+  ctx.fillStyle = glow;
+  ctx.fill();
+
+  // Crescent body, bite to the right so the "C" opens away from the face
+  crescentPath(ctx, 0, 0, r, 0.45, 0);
+  const moonGrad = ctx.createLinearGradient(-r, -r, 0, r);
+  moonGrad.addColorStop(0, "#FFF9C4");
+  moonGrad.addColorStop(1, "#FFD54F");
+  ctx.fillStyle = moonGrad;
+  ctx.fill();
+  ctx.strokeStyle = "#F9A825";
+  ctx.lineWidth = u * 1;
+  ctx.stroke();
+
+  // Craters
+  ctx.fillStyle = "rgba(249,168,37,0.35)";
+  [[-0.8, -0.45, 0.09], [-0.72, 0.55, 0.07]].forEach(([fx, fy, fr]) => {
+    ctx.beginPath();
+    ctx.arc(r * fx, r * fy, r * fr, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Sleepy closed eye
+  ctx.beginPath();
+  ctx.arc(-r * 0.66, -r * 0.18, r * 0.12, 0.15, Math.PI - 0.15);
+  ctx.strokeStyle = "#5D4037";
+  ctx.lineWidth = u * 1;
+  ctx.lineCap = "round";
+  ctx.stroke();
+
+  // Rosy cheek
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.74, r * 0.08, r * 0.1, r * 0.06, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,138,128,0.6)";
+  ctx.fill();
+
+  // Mouth: a little smile, or a big yawn when the child opens their mouth
   ctx.beginPath();
   if (m.mouthOpenRatio > 0.3) {
-    ctx.ellipse(smileX, smileY, r * 0.18, r * 0.1 * m.mouthOpenRatio, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "#3949AB";
+    ctx.ellipse(-r * 0.62, r * 0.32, r * 0.08, r * 0.12 * m.mouthOpenRatio, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#6D4C41";
     ctx.fill();
   } else {
-    ctx.arc(smileX, smileY - r * 0.06, r * 0.16, 0.2, Math.PI - 0.2);
-    ctx.strokeStyle = "#3949AB";
-    ctx.lineWidth = 3;
+    ctx.arc(-r * 0.66, r * 0.26, r * 0.09, 0.3, Math.PI - 0.3);
+    ctx.strokeStyle = "#5D4037";
+    ctx.lineWidth = u * 0.9;
     ctx.stroke();
   }
-
   ctx.restore();
-}
 
-function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.beginPath();
-  for (let i = 0; i < 5; i++) {
-    const outerAngle = (i / 5) * Math.PI * 2 - Math.PI / 2;
-    const innerAngle = outerAngle + Math.PI / 5;
-    if (i === 0) ctx.moveTo(Math.cos(outerAngle) * r, Math.sin(outerAngle) * r);
-    else ctx.lineTo(Math.cos(outerAngle) * r, Math.sin(outerAngle) * r);
-    ctx.lineTo(Math.cos(innerAngle) * r * 0.45, Math.sin(innerAngle) * r * 0.45);
+  // Floating "z"s while yawning
+  if (m.mouthOpenRatio > 0.3) {
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    [0, 1, 2].forEach((i) => {
+      const t = (m.time * 0.6 + i / 3) % 1;
+      ctx.globalAlpha = 1 - t;
+      ctx.font = `bold ${u * (6 + i * 2)}px sans-serif`;
+      ctx.fillText("z", moonX + r * 0.6 + t * u * 14, moonY - r * 0.6 - t * u * 22);
+    });
+    ctx.globalAlpha = 1;
   }
-  ctx.closePath();
-  ctx.fillStyle = "#FFF9C4";
-  ctx.fill();
+
   ctx.restore();
 }

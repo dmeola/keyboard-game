@@ -221,20 +221,25 @@ export default function GuideCharacter({ expression, message, size = 120, theme 
   const [blink, setBlink] = useState(false);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
+    let unblink: ReturnType<typeof setTimeout>;
     const loop = () => {
       setBlink(true);
-      setTimeout(() => setBlink(false), 130);
+      unblink = setTimeout(() => setBlink(false), 130);
       timer = setTimeout(loop, 2600 + Math.random() * 2400);
     };
     timer = setTimeout(loop, 1800);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(unblink);
+    };
   }, []);
 
   return (
-    <div className="flex flex-col items-center select-none" style={{ width: size, minWidth: size }}>
-      {/* Speech bubble */}
+    <div className="flex flex-col items-center select-none" style={{ minWidth: size }}>
+      {/* Speech bubble — grows with Pip so it stays readable on big screens */}
       <motion.div
-        className="relative mb-2 bg-white rounded-2xl shadow-lg border-2 border-sky-200 px-3 py-2 max-w-[200px]"
+        className="relative mb-2 bg-white rounded-2xl shadow-lg border-2 border-sky-200 px-3 py-2"
+        style={{ maxWidth: Math.max(200, size * 1.9) }}
         initial={{ opacity: 0, scale: 0.8, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         key={message}
@@ -243,7 +248,12 @@ export default function GuideCharacter({ expression, message, size = 120, theme 
         aria-live="polite"
         aria-atomic="true"
       >
-        <p className="font-heading text-sm text-gray-700 leading-tight text-center font-semibold">{message}</p>
+        <p
+          className="font-heading text-gray-700 leading-tight text-center font-semibold"
+          style={{ fontSize: Math.max(14, Math.round(size * 0.12)) }}
+        >
+          {message}
+        </p>
         <div className="absolute left-1/2 -translate-x-1/2 w-0 h-0" style={{ bottom: '-10px', borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '10px solid #bae6fd' }} />
         <div className="absolute left-1/2 -translate-x-1/2 w-0 h-0" style={{ bottom: '-8px', borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '9px solid white' }} />
       </motion.div>

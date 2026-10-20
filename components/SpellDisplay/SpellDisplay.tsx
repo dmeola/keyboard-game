@@ -26,8 +26,8 @@ export default function SpellDisplay({ word, revealedCount, emoji }: SpellDispla
           : `Spell the word ${word}. ${revealedCount} of ${letters.length} letters typed.`
       }
     >
-      <span className="text-3xl select-none" aria-hidden="true">{emoji}</span>
-      <span className="font-heading text-sm text-purple-600 font-bold">Spell:</span>
+      <span className="select-none leading-none" style={{ fontSize: 'clamp(1.9rem, 5vh, 3.2rem)' }} aria-hidden="true">{emoji}</span>
+      <span className="font-heading text-sm md:text-base text-purple-600 font-bold">Spell:</span>
       <div className="flex items-center gap-1.5" aria-hidden="true">
         {letters.map((letter, i) => {
           const isFilled = i < revealedCount;
@@ -35,14 +35,18 @@ export default function SpellDisplay({ word, revealedCount, emoji }: SpellDispla
           return (
             <motion.div
               key={`${word}-${i}`}
-              className={`relative flex items-center justify-center rounded-lg font-heading font-bold text-2xl border-2 select-none ${
+              className={`relative flex items-center justify-center rounded-lg font-heading font-bold border-2 select-none ${
                 isFilled
                   ? 'bg-grass-300 border-grass-500 text-grass-900'
                   : isCurrent
                     ? 'bg-white border-purple-500 text-purple-300'
                     : 'bg-gray-50 border-gray-200 text-gray-300'
               }`}
-              style={{ width: 36, height: 40 }}
+              style={{
+                width: 'clamp(36px, 5vh, 64px)',
+                height: 'clamp(40px, 5.6vh, 72px)',
+                fontSize: 'clamp(1.5rem, 3.8vh, 2.6rem)',
+              }}
               animate={
                 isCurrent
                   ? { scale: [1, 1.08, 1], borderColor: ['#a855f7', '#c084fc', '#a855f7'] }
