@@ -82,4 +82,56 @@ echo "==> Generating miscellaneous audio..."
 generate "welcome.mp3" "Welcome to KeyJr! Press any key to start exploring!"
 
 echo ""
+echo "==> Generating letter names (used in Quest and Spell)..."
+for L in A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; do
+  l=$(echo "$L" | tr '[:upper:]' '[:lower:]')
+  # [[char LTRL]] makes the voice say the letter name ("ay"), not the word "a"
+  generate "name-$l.mp3" "[[char LTRL]] $L [[char NORM]]!"
+done
+
+echo ""
+echo "==> Generating Quest prompts..."
+quest() { generate "quest-$1.mp3" "Can you find the letter [[char LTRL]] $2 [[char NORM]]? $3"; }
+quest a A "A is for Apple!"
+quest b B "B is for Balloon!"
+quest c C "C is for Cat!"
+quest d D "D is for Dog!"
+quest e E "E is for Elephant!"
+quest f F "F is for Fish!"
+quest g G "G is for Grapes!"
+quest h H "H is for Hat!"
+quest i I "I is for Ice cream!"
+quest j J "J is for Jellyfish!"
+quest k K "K is for Kite!"
+quest l L "L is for Lion!"
+quest m M "M is for Moon!"
+quest n N "N is for Nose!"
+quest o O "O is for Orange!"
+quest p P "P is for Penguin!"
+quest q Q "Q is for Queen!"
+quest r R "R is for Rainbow!"
+quest s S "S is for Star!"
+quest t T "T is for Train!"
+quest u U "U is for Umbrella!"
+quest v V "V is for Volcano!"
+quest w W "W is for Watermelon!"
+quest x X "X is for Xylophone!"
+quest y Y "Y is for Yarn!"
+quest z Z "Z is for Zebra!"
+
+echo ""
+echo "==> Generating Spell prompts (words read from lib/wordData.ts)..."
+for WORD in $(grep -o 'word: "[A-Z]*"' lib/wordData.ts | sed 's/word: "\(.*\)"/\1/'); do
+  w=$(echo "$WORD" | tr '[:upper:]' '[:lower:]')
+  generate "spell-$w.mp3" "Let's spell $w! $w."
+  generate "spelled-$w.mp3" "You spelled $w! Hooray!"
+done
+
+echo ""
+echo "==> Generating feedback..."
+generate "yes.mp3" "Yes! You found it!"
+generate "try-again.mp3" "Oops! Try again!"
+generate "look-for.mp3" "Look for"
+
+echo ""
 echo "Done! $(ls "$OUTPUT_DIR"/*.mp3 | wc -l | tr -d ' ') audio files in $OUTPUT_DIR"

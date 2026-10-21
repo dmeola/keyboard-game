@@ -4,6 +4,10 @@ import { useEffect, useRef, useCallback } from "react";
 import { letterData } from "@/lib/letterData";
 import { useFaceFilter } from "./useFaceFilter";
 import { drawLetterFilter, drawEmojiFilter } from "./filterRenderer";
+import { createFaceSmoother, measureFace } from "./faceMetrics";
+
+/** How long the filter takes to pop in after a new letter (ms) */
+const APPEAR_MS = 350;
 
 interface CameraFilterProps {
   /** Currently active letter (uppercase), or null to show plain camera feed */
@@ -19,11 +23,28 @@ export default function CameraFilter({
   activeLetter = null,
   isActive = false,
 }: CameraFilterProps): React.JSX.Element {
-  const { videoRef, canvasRef, isReady, isRunning, error, startCamera, stopCamera, latestResult } =
+  const { videoRef, canvasRef, isReady, isRunning, error, startCamera, stopCamera, detect } =
     useFaceFilter();
 
   const activeLetterRef = useRef(activeLetter);
-  activeLetterRef.current = activeLetter;
+  const letterChangedAtRef = useRef(0);
+  const smootherRef = useRef(createFaceSmoother());
+  const startedAtRef = useRef(0);
+  const reducedMotionRef = useRef(false);
+
+  // Restart the pop-in animation whenever the letter changes
+  useEffect(() => {
+    activeLetterRef.current = activeLetter;
+    letterChangedAtRef.current = performance.now();
+  }, [activeLetter]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    reducedMotionRef.current = mq.matches;
+    const onChange = (e: MediaQueryListEvent) => { reducedMotionRef.current = e.matches; };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   const drawLoopRef = useRef<number | null>(null);
 
@@ -65,31 +86,39 @@ export default function CameraFilter({
     ctx.drawImage(video, 0, 0, w, h);
     ctx.restore();
 
+    const result = detect();
+    const landmarks = result?.faceLandmarks[0];
+    if (!landmarks) smootherRef.current.reset();
+
     if (letter) {
-      const result = latestResult.current;
-      if (result && result.faceLandmarks.length > 0) {
-        const landmarks = result.faceLandmarks[0];
+      if (landmarks) {
         // Mirror landmark x coords to match the flipped video
-        const mirroredLandmarks = landmarks.map((lm) => ({
-          ...lm,
-          x: 1 - lm.x,
-        }));
+        const mirrored = landmarks.map((lm) => ({ ...lm, x: 1 - lm.x }));
+        const raw = smootherRef.current.smooth(measureFace(mirrored, w, h));
+        const now = performance.now();
+        const appear = reducedMotionRef.current ? 1 : (now - letterChangedAtRef.current) / APPEAR_MS;
         try {
-          drawLetterFilter(ctx, mirroredLandmarks, letter, w, h);
+          drawLetterFilter(ctx, raw, letter, {
+            time: (now - startedAtRef.current) / 1000,
+            appear,
+            canvasW: w,
+            canvasH: h,
+          });
         } catch {
           drawEmojiFilter(ctx, letter, w, h);
         }
-      } else if (result !== null) {
+      } else if (result) {
         drawEmojiFilter(ctx, letter, w, h);
       }
     }
 
     drawLoopRef.current = requestAnimationFrame(paintFrame);
-  }, [canvasRef, videoRef, latestResult]);
+  }, [canvasRef, videoRef, detect]);
 
   // Start/stop paint loop based on running state
   useEffect(() => {
     if (isRunning) {
+      startedAtRef.current = performance.now();
       drawLoopRef.current = requestAnimationFrame(paintFrame);
     }
     return () => {

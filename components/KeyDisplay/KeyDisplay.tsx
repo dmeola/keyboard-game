@@ -82,7 +82,7 @@ export default function KeyDisplay({ pressedKey, entry, keyType, pressSequence, 
   }, [pressedKey, pressSequence, fadeOut]);
 
   return (
-    <div className="relative flex items-center justify-center w-full h-full min-h-[200px]">
+    <div className="relative flex items-center justify-center">
       {/* Screen reader announcement — assertive so it interrupts immediately */}
       <div
         aria-live="assertive"
@@ -107,18 +107,22 @@ export default function KeyDisplay({ pressedKey, entry, keyType, pressSequence, 
               opacity: faded ? { duration: 0.6 } : { duration: 0.15 },
               scale: faded ? { duration: 0.6 } : undefined,
             }}
-            className="flex flex-col items-center justify-center rounded-3xl shadow-2xl px-8 py-6 min-w-[180px]"
-            style={{ backgroundColor: color }}
+            className="flex flex-col items-center justify-center rounded-[2rem] shadow-2xl"
+            style={{
+              backgroundColor: color,
+              minWidth: 'calc(var(--letter-size) * 1.05)',
+              padding: 'calc(var(--letter-size) * 0.1) calc(var(--letter-size) * 0.18)',
+            }}
           >
             {keyType === 'letter' && entry && 'word' in entry && (
               <>
                 <span
                   className={`font-heading font-bold ${textCls} leading-none drop-shadow-lg select-none`}
-                  style={{ fontSize: 'clamp(4rem, 18vw, 9rem)' }}
+                  style={{ fontSize: 'var(--letter-size)' }}
                 >
                   {pressedKey.toUpperCase()}
                 </span>
-                <span className={`font-heading font-semibold ${textCls} opacity-90 text-2xl md:text-3xl mt-1 select-none`}>
+                <span className={`font-heading font-semibold ${textCls} opacity-90 mt-1 select-none`} style={{ fontSize: 'var(--word-size)' }}>
                   {(entry as LetterEntry).word}
                 </span>
               </>
@@ -128,11 +132,11 @@ export default function KeyDisplay({ pressedKey, entry, keyType, pressSequence, 
               <>
                 <span
                   className={`font-heading font-bold ${textCls} leading-none drop-shadow-lg select-none`}
-                  style={{ fontSize: 'clamp(4rem, 18vw, 9rem)' }}
+                  style={{ fontSize: 'var(--letter-size)' }}
                 >
                   {pressedKey}
                 </span>
-                <span className={`font-heading font-semibold ${textCls} opacity-90 text-2xl md:text-3xl mt-1 select-none`}>
+                <span className={`font-heading font-semibold ${textCls} opacity-90 mt-1 select-none`} style={{ fontSize: 'var(--word-size)' }}>
                   {(entry as NumberEntry).word}
                 </span>
               </>
@@ -144,10 +148,10 @@ export default function KeyDisplay({ pressedKey, entry, keyType, pressSequence, 
                 animate={{ rotate: [0, -5, 5, -3, 3, 0] }}
                 transition={{ duration: 0.5 }}
               >
-                <span className="text-7xl mb-2 select-none">
+                <span className="mb-2 select-none leading-none" style={{ fontSize: 'calc(var(--letter-size) * 0.6)' }}>
                   {specialInfo?.emoji ?? pressedKey}
                 </span>
-                <span className={`font-heading font-bold ${textCls} text-3xl select-none`}>
+                <span className={`font-heading font-bold ${textCls} select-none`} style={{ fontSize: 'var(--word-size)' }}>
                   {specialInfo?.label ?? pressedKey}
                 </span>
               </motion.div>
@@ -160,10 +164,14 @@ export default function KeyDisplay({ pressedKey, entry, keyType, pressSequence, 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center rounded-3xl border-4 border-dashed border-sky-200 px-12 py-8 min-w-[180px]"
+            className="flex flex-col items-center justify-center rounded-[2rem] border-4 border-dashed border-sky-200"
+            style={{
+              minWidth: 'calc(var(--letter-size) * 1.05)',
+              padding: 'calc(var(--letter-size) * 0.2) calc(var(--letter-size) * 0.25)',
+            }}
           >
-            <span className="text-6xl mb-3 select-none">⌨️</span>
-            <span className="font-heading text-sky-400 text-xl font-semibold text-center select-none">
+            <span className="mb-3 select-none leading-none" style={{ fontSize: 'calc(var(--letter-size) * 0.5)' }}>⌨️</span>
+            <span className="font-heading text-sky-400 font-semibold text-center select-none" style={{ fontSize: 'var(--word-size)' }}>
               Press any key!
             </span>
           </motion.div>

@@ -19,7 +19,11 @@ export interface FaceFilterState {
   error: string | null;
   startCamera: () => Promise<void>;
   stopCamera: () => void;
-  latestResult: React.RefObject<FaceLandmarkerResult | null>;
+  /**
+   * Run face detection on the current video frame. Call from the paint loop;
+   * returns the cached result when the video hasn't produced a new frame.
+   */
+  detect: () => FaceLandmarkerResult | null;
 }
 
 export function useFaceFilter(): FaceFilterState {
@@ -27,7 +31,7 @@ export function useFaceFilter(): FaceFilterState {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const landmarkerRef = useRef<FaceLandmarker | null>(null);
   const latestResult = useRef<FaceLandmarkerResult | null>(null);
-  const rafRef = useRef<number | null>(null);
+  const lastVideoTimeRef = useRef(-1);
   const streamRef = useRef<MediaStream | null>(null);
 
   const [isReady, setIsReady] = useState(false);
@@ -85,10 +89,6 @@ export function useFaceFilter(): FaceFilterState {
   }, []);
 
   const stopCamera = useCallback((): void => {
-    if (rafRef.current !== null) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -97,6 +97,7 @@ export function useFaceFilter(): FaceFilterState {
       videoRef.current.srcObject = null;
     }
     latestResult.current = null;
+    lastVideoTimeRef.current = -1;
     setIsRunning(false);
   }, []);
 
@@ -117,38 +118,6 @@ export function useFaceFilter(): FaceFilterState {
       video.srcObject = stream;
       await video.play();
       setIsRunning(true);
-
-      let lastTimestamp = -1;
-
-      function tick(): void {
-        const vid = videoRef.current;
-        const canvas = canvasRef.current;
-        const landmarker = landmarkerRef.current;
-
-        if (!vid || !canvas || vid.readyState < 2) {
-          rafRef.current = requestAnimationFrame(tick);
-          return;
-        }
-
-        // Sync canvas size to video
-        if (canvas.width !== vid.videoWidth) canvas.width = vid.videoWidth;
-        if (canvas.height !== vid.videoHeight) canvas.height = vid.videoHeight;
-
-        const now = performance.now();
-        if (now !== lastTimestamp && landmarker) {
-          try {
-            const result = landmarker.detectForVideo(vid, now);
-            latestResult.current = result;
-          } catch {
-            // Detection errors are non-fatal
-          }
-          lastTimestamp = now;
-        }
-
-        rafRef.current = requestAnimationFrame(tick);
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
     } catch (err) {
       const msg =
         err instanceof Error
@@ -160,6 +129,23 @@ export function useFaceFilter(): FaceFilterState {
     }
   }, []);
 
+  const detect = useCallback((): FaceLandmarkerResult | null => {
+    const video = videoRef.current;
+    const landmarker = landmarkerRef.current;
+    if (!video || !landmarker || video.readyState < 2) return latestResult.current;
+
+    // Only detect when the camera has delivered a new frame
+    if (video.currentTime !== lastVideoTimeRef.current) {
+      lastVideoTimeRef.current = video.currentTime;
+      try {
+        latestResult.current = landmarker.detectForVideo(video, performance.now());
+      } catch {
+        // Detection errors are non-fatal
+      }
+    }
+    return latestResult.current;
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -167,5 +153,5 @@ export function useFaceFilter(): FaceFilterState {
     };
   }, [stopCamera]);
 
-  return { videoRef, canvasRef, isReady, isRunning, error, startCamera, stopCamera, latestResult };
+  return { videoRef, canvasRef, isReady, isRunning, error, startCamera, stopCamera, detect };
 }

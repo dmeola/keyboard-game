@@ -21,19 +21,42 @@ function getAudio(src: string): HTMLAudioElement {
   return audioCache.get(src)!;
 }
 
+/** The clip currently playing — stopped whenever something new is spoken */
+let currentAudio: HTMLAudioElement | null = null;
+/** Bumped on every new utterance so stale clip sequences stop advancing */
+let sequenceToken = 0;
+
 function playAudioFile(src: string): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
   const audio = getAudio(src);
+  if (currentAudio && currentAudio !== audio) currentAudio.pause();
+  currentAudio = audio;
   audio.currentTime = 0;
   return audio.play();
 }
 
-/** Preloads all letter and number audio files after the first user gesture. */
+/** Stops any clip or speech in progress so key presses never talk over each other. */
+function stopSpeaking(): number {
+  sequenceToken++;
+  currentAudio?.pause();
+  if (canSpeak()) window.speechSynthesis.cancel();
+  return sequenceToken;
+}
+
+/** Preloads the audio clips used most often after the first user gesture. */
 export function preloadAudio(): void {
   if (typeof window === "undefined") return;
   const letters = "abcdefghijklmnopqrstuvwxyz".split("");
   const numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-  [...letters.map((l) => `/audio/letter-${l}.mp3`), ...numbers.map((n) => `/audio/number-${n}.mp3`), "/audio/welcome.mp3"].forEach(
+  [
+    ...letters.map((l) => `/audio/letter-${l}.mp3`),
+    ...letters.map((l) => `/audio/name-${l}.mp3`),
+    ...numbers.map((n) => `/audio/number-${n}.mp3`),
+    "/audio/welcome.mp3",
+    "/audio/yes.mp3",
+    "/audio/try-again.mp3",
+    "/audio/look-for.mp3",
+  ].forEach(
     (src) => getAudio(src) // instantiates + sets preload="auto"
   );
 }
@@ -152,47 +175,140 @@ export function speakSequence(parts: string[], options: SpeakOptions = {}, pause
 }
 
 // ---------------------------------------------------------------------------
+// Clip sequences — plays MP3s back to back; any clip that fails is spoken with
+// the Web Speech API instead so the sequence still completes.
+// ---------------------------------------------------------------------------
+
+type Clip = {
+  src: string;
+  /** Fallback text — an array is spoken as separate phrases with pauses */
+  text: string | string[];
+};
+
+const CLIP_GAP_MS = 150;
+
+function playClips(clips: Clip[]): void {
+  if (typeof window === "undefined") return;
+  const token = stopSpeaking();
+
+  const playAt = (i: number) => {
+    if (token !== sequenceToken || i >= clips.length) return;
+    const next = () => setTimeout(() => playAt(i + 1), CLIP_GAP_MS);
+    const { src, text } = clips[i];
+    const audio = getAudio(src);
+    audio.onended = () => {
+      if (token === sequenceToken) next();
+    };
+    playAudioFile(src).catch((err: unknown) => {
+      // AbortError means a newer key press interrupted this clip — not a real failure
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      speakFallback(Array.isArray(text) ? text : [text], token, next);
+    });
+  };
+
+  playAt(0);
+}
+
+function speakFallback(parts: string[], token: number, onDone: () => void): void {
+  if (!canSpeak()) {
+    onDone();
+    return;
+  }
+  const queue = [...parts];
+  const speakNext = () => {
+    if (token !== sequenceToken) return;
+    const part = queue.shift();
+    if (part === undefined) {
+      onDone();
+      return;
+    }
+    const utterance = makeUtterance(part, { rate: 0.8, pitch: 1.2 });
+    utterance.onend = () => setTimeout(speakNext, 300);
+    window.speechSynthesis.speak(utterance);
+  };
+  speakNext();
+}
+
+const letterClip = (letter: string, entry: LetterEntry): Clip => {
+  const upper = letter.toUpperCase();
+  return {
+    src: `/audio/letter-${letter.toLowerCase()}.mp3`,
+    text: [upper, `${toTtsPhoneme(entry.phoneme)} sound`, `${upper} is for ${entry.word}!`],
+  };
+};
+
+const nameClip = (letter: string): Clip => ({
+  src: `/audio/name-${letter.toLowerCase()}.mp3`,
+  text: `${letter.toUpperCase()}!`,
+});
+
+const questClip = (letter: string, entry: LetterEntry): Clip => ({
+  src: `/audio/quest-${letter.toLowerCase()}.mp3`,
+  text: [`Can you find the letter ${letter.toUpperCase()}?`, `${letter.toUpperCase()} is for ${entry.word}!`],
+});
+
+const TRY_AGAIN: Clip = { src: "/audio/try-again.mp3", text: "Oops! Try again!" };
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
-export function speakLetter(letter: string, _entry: LetterEntry): void {
-  const src = `/audio/letter-${letter.toLowerCase()}.mp3`;
-  playAudioFile(src).catch((err: unknown) => {
-    // AbortError means the previous play was interrupted by a new key press — not a real failure
-    if (err instanceof DOMException && err.name === 'AbortError') return;
-    const upper = letter.toUpperCase();
-    speakSequence(
-      [upper, `${toTtsPhoneme(_entry.phoneme)} sound`, `${upper} is for ${_entry.word}!`],
-      { rate: 0.8, pitch: 1.2 }
-    );
-  });
+export function speakLetter(letter: string, entry: LetterEntry): void {
+  playClips([letterClip(letter, entry)]);
 }
 
-export function speakNumber(digit: number, _entry: NumberEntry): void {
-  const src = `/audio/number-${digit}.mp3`;
-  playAudioFile(src).catch((err: unknown) => {
-    // AbortError means the previous play was interrupted by a new key press — not a real failure
-    if (err instanceof DOMException && err.name === 'AbortError') return;
-    if (!canSpeak()) return;
-    const parts: string[] = [`${_entry.word}!`];
-    if (digit > 0) {
-      parts.push("Let's count!");
-      parts.push(`${Array.from({ length: digit }, (_, i) => i + 1).join(", ")}!`);
-    }
-    speakSequence(parts, { rate: 0.8, pitch: 1.2 });
-  });
+export function speakNumber(digit: number, entry: NumberEntry): void {
+  const text: string[] = [`${entry.word}!`];
+  if (digit > 0) {
+    text.push("Let's count!");
+    text.push(`${Array.from({ length: digit }, (_, i) => i + 1).join(", ")}!`);
+  }
+  playClips([{ src: `/audio/number-${digit}.mp3`, text }]);
+}
+
+/** Quest: Pip asks for a new target letter */
+export function speakQuestPrompt(letter: string, entry: LetterEntry): void {
+  playClips([questClip(letter, entry)]);
+}
+
+/** Quest: the child found the target */
+export function speakQuestCorrect(letter: string): void {
+  playClips([{ src: "/audio/yes.mp3", text: "Yes! You found it!" }, nameClip(letter)]);
+}
+
+/** Quest: wrong letter — name it, then repeat the request */
+export function speakQuestWrong(pressed: string, target: string, targetEntry: LetterEntry): void {
+  playClips([nameClip(pressed), TRY_AGAIN, questClip(target, targetEntry)]);
+}
+
+/** Spell: Pip introduces a new word */
+export function speakSpellPrompt(word: string): void {
+  const w = word.toLowerCase();
+  playClips([{ src: `/audio/spell-${w}.mp3`, text: [`Let's spell ${w}!`, w] }]);
+}
+
+/** Spell: a correct letter — just say its name */
+export function speakSpellLetter(letter: string): void {
+  playClips([nameClip(letter)]);
+}
+
+/** Spell: wrong letter — name it and say which one to look for */
+export function speakSpellWrong(pressed: string, expected: string): void {
+  playClips([nameClip(pressed), TRY_AGAIN, { src: "/audio/look-for.mp3", text: "Look for" }, nameClip(expected)]);
+}
+
+/** Spell: the whole word is done */
+export function speakSpellDone(word: string): void {
+  const w = word.toLowerCase();
+  playClips([{ src: `/audio/spelled-${w}.mp3`, text: [`You spelled ${w}!`, "Hooray!"] }]);
 }
 
 export function speakWelcome(): void {
-  playAudioFile("/audio/welcome.mp3").catch(() => {
-    speakSequence(
-      ["Welcome to KeyJr!", "Press any key to start exploring!"],
-      { rate: 0.85, pitch: 1.1 }
-    );
-  });
+  playClips([{ src: "/audio/welcome.mp3", text: ["Welcome to KeyJr!", "Press any key to start exploring!"] }]);
 }
 
 export function speakFocusModeExited(): void {
+  stopSpeaking();
   speakSequence(
     ["Focus mode has ended.", "Press the button to go back to fullscreen."],
     { rate: 0.85, pitch: 1.0 }

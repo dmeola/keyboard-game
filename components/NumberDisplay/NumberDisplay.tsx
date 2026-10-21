@@ -16,8 +16,8 @@ function bgClassToColor(bgClass: string): string {
 export default function NumberDisplay({ entry }: NumberDisplayProps) {
   if (!entry) {
     return (
-      <div className="flex items-center justify-center w-full py-8 opacity-25">
-        <span className="text-8xl select-none" aria-hidden="true">✨</span>
+      <div className="flex items-center justify-center opacity-25">
+        <span className="select-none leading-none" style={{ fontSize: 'calc(var(--emoji-size) * 0.6)' }} aria-hidden="true">✨</span>
       </div>
     );
   }
@@ -29,7 +29,7 @@ export default function NumberDisplay({ entry }: NumberDisplayProps) {
     <AnimatePresence mode="wait">
       <motion.div
         key={entry.word}
-        className="flex flex-col items-center justify-center w-full py-4 gap-4"
+        className="flex flex-col items-center justify-center gap-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -46,28 +46,29 @@ export default function NumberDisplay({ entry }: NumberDisplayProps) {
             <motion.span
               className="select-none leading-none"
               aria-hidden="true"
-              style={{ fontSize: 'clamp(5rem, 18vw, 9rem)' }}
+              style={{ fontSize: 'var(--emoji-size)' }}
               animate={{ rotate: [0, -10, 10, -8, 8, 0] }}
               transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
             >
               😴
             </motion.span>
             <span
-              className="font-heading font-bold text-2xl md:text-3xl text-center select-none px-4"
-              style={{ color: accentColor }}
+              className="font-heading font-bold text-center select-none px-4"
+              style={{ color: accentColor, fontSize: 'calc(var(--word-size) * 0.8)' }}
             >
               Zero… nothing here!
             </span>
           </motion.div>
         ) : (
           /* Staggered object animation */
-          <div className="flex flex-col items-center gap-3 w-full">
+          <div className="flex flex-col items-center gap-3">
             {/* Accessible description of the count — screen reader reads this */}
             <p className="sr-only">
               {entry.word}: {entry.objects.length} {entry.objects.length === 1 ? 'object' : 'objects'}
             </p>
             <motion.div
-              className="flex flex-wrap items-center justify-center gap-2 md:gap-3 px-4 max-w-lg"
+              className="flex flex-wrap items-center justify-center gap-2 md:gap-3 px-4"
+              style={{ maxWidth: 'calc(var(--object-size) * 5.6)' }}
               aria-hidden="true"
               initial="hidden"
               animate="visible"
@@ -96,8 +97,14 @@ export default function NumberDisplay({ entry }: NumberDisplayProps) {
                 >
                   {/* Count badge */}
                   <motion.span
-                    className="absolute -top-5 font-heading font-bold text-sm rounded-full w-6 h-6 flex items-center justify-center text-white shadow-md"
-                    style={{ backgroundColor: accentColor, fontSize: '0.7rem' }}
+                    className="absolute font-heading font-bold rounded-full flex items-center justify-center text-white shadow-md"
+                    style={{
+                      backgroundColor: accentColor,
+                      top: 'calc(var(--object-size) * -0.3)',
+                      width: 'calc(var(--object-size) * 0.36)',
+                      height: 'calc(var(--object-size) * 0.36)',
+                      fontSize: 'calc(var(--object-size) * 0.2)',
+                    }}
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: [0, 1, 1, 0], scale: [0, 1.2, 1, 0] }}
                     transition={{ delay: i * 0.12 + 0.4, duration: 1.2, times: [0, 0.2, 0.6, 1] }}
@@ -107,7 +114,7 @@ export default function NumberDisplay({ entry }: NumberDisplayProps) {
 
                   <span
                     className="select-none leading-none"
-                    style={{ fontSize: 'clamp(2.5rem, 7vw, 4.5rem)' }}
+                    style={{ fontSize: 'var(--object-size)' }}
                   >
                     {emoji}
                   </span>
@@ -117,8 +124,8 @@ export default function NumberDisplay({ entry }: NumberDisplayProps) {
 
             {/* Fun fact */}
             <motion.p
-              className="font-heading text-center text-lg md:text-xl font-semibold px-6 max-w-md"
-              style={{ color: accentColor }}
+              className="font-heading text-center font-semibold px-6"
+              style={{ color: accentColor, fontSize: 'max(0.95rem, calc(var(--word-size) * 0.6))', maxWidth: 'calc(var(--object-size) * 6)' }}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: entry.objects.length * 0.12 + 0.5 }}

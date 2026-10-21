@@ -3,6 +3,8 @@ const STORAGE_KEY = "keyjr_session";
 type KeyRecord = {
   pressCount: number;
   lastSeenAt: number;
+  /** Times the child found this letter in Quest mode */
+  questFound?: number;
 };
 
 type SessionData = {
@@ -37,9 +39,19 @@ export function recordKeyPress(key: string): void {
   const normalized = key.toUpperCase();
   const existing = data.keys[normalized] ?? { pressCount: 0, lastSeenAt: 0 };
   data.keys[normalized] = {
+    ...existing,
     pressCount: existing.pressCount + 1,
     lastSeenAt: Date.now(),
   };
+  saveSession(data);
+}
+
+/** Records a correct Quest answer — drives which letters Quest asks for next. */
+export function recordQuestFound(key: string): void {
+  const data = loadSession();
+  const normalized = key.toUpperCase();
+  const existing = data.keys[normalized] ?? { pressCount: 0, lastSeenAt: 0 };
+  data.keys[normalized] = { ...existing, questFound: (existing.questFound ?? 0) + 1 };
   saveSession(data);
 }
 

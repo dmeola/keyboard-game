@@ -1,86 +1,98 @@
 import type { FaceMetrics } from "../faceMetrics";
+import { drawCloud, foreheadY } from "./shared";
 
 export function drawVolcanoFilter(
   ctx: CanvasRenderingContext2D,
   m: FaceMetrics
 ): void {
   ctx.save();
-  const w = m.faceWidth * 1.1;
-  const craterTopY = m.cy - m.faceHeight * 0.5;
-  const volcanoBaseY = m.cy + m.faceHeight * 0.6;
+  const u = m.u;
 
-  // Volcano rocky body (trapezoid)
+  // Volcano hat sitting on top of the head
+  const baseY = foreheadY(m) - u * 6;
+  const craterY = baseY - u * 42;
+  const baseHalf = u * 50;
+  const craterHalf = u * 16;
+  const open = m.mouthOpenRatio > 0.25;
+  const power = open ? m.mouthOpenRatio : 0;
+
+  // Smoke — a lazy wisp, or a big plume during an eruption
+  const puffs = open ? 5 : 2;
+  for (let i = 0; i < puffs; i++) {
+    const p = (m.time * (open ? 0.9 : 0.35) + i / puffs) % 1;
+    const r = u * (6 + p * 14) * (open ? 1 + power : 0.6);
+    ctx.globalAlpha = (1 - p) * (open ? 0.7 : 0.45);
+    drawCloud(ctx, Math.sin(p * 5 + i) * u * 6, craterY - u * 8 - p * u * (open ? 70 : 35), r, "#B0BEC5");
+  }
+  ctx.globalAlpha = 1;
+
+  // Rocky cone
   ctx.beginPath();
-  ctx.moveTo(m.cx - w * 0.28, craterTopY);
-  ctx.lineTo(m.cx + w * 0.28, craterTopY);
-  ctx.lineTo(m.cx + w * 0.55, volcanoBaseY);
-  ctx.lineTo(m.cx - w * 0.55, volcanoBaseY);
+  ctx.moveTo(-craterHalf, craterY);
+  ctx.lineTo(craterHalf, craterY);
+  ctx.quadraticCurveTo(u * 30, baseY - u * 18, baseHalf, baseY);
+  ctx.quadraticCurveTo(0, baseY + u * 8, -baseHalf, baseY);
+  ctx.quadraticCurveTo(-u * 30, baseY - u * 18, -craterHalf, craterY);
   ctx.closePath();
-  const rockGrad = ctx.createLinearGradient(m.cx - w * 0.55, 0, m.cx + w * 0.55, 0);
-  rockGrad.addColorStop(0, "#795548");
-  rockGrad.addColorStop(0.5, "#5D4037");
-  rockGrad.addColorStop(1, "#6D4C41");
-  ctx.fillStyle = rockGrad;
+  const rock = ctx.createLinearGradient(-baseHalf, 0, baseHalf, 0);
+  rock.addColorStop(0, "#795548");
+  rock.addColorStop(0.5, "#5D4037");
+  rock.addColorStop(1, "#6D4C41");
+  ctx.fillStyle = rock;
   ctx.fill();
 
-  // Rocky texture bumps on sides
+  // Rocky bumps
   ctx.fillStyle = "#4E342E";
-  const bumpPositions: [number, number, number][] = [
-    [m.cx - w * 0.4, volcanoBaseY - 20, 18],
-    [m.cx + w * 0.38, volcanoBaseY - 15, 15],
-    [m.cx - w * 0.5, volcanoBaseY - 5, 12],
-    [m.cx + w * 0.45, volcanoBaseY - 8, 14],
-  ];
-  bumpPositions.forEach(([bx, by, br]) => {
+  ([[-30, -6, 6], [26, -8, 5], [-12, -20, 4], [12, -26, 3.5]] as const).forEach(([bx, by, br]) => {
     ctx.beginPath();
-    ctx.arc(bx, by, br, Math.PI, 0);
+    ctx.arc(u * bx, baseY + u * by, u * br, Math.PI, 0);
     ctx.fill();
   });
 
-  // Crater opening
-  ctx.beginPath();
-  ctx.ellipse(m.cx, craterTopY, w * 0.28, 18, 0, 0, Math.PI * 2);
-  ctx.fillStyle = "#3E2723";
-  ctx.fill();
-
-  // Lava inside crater
-  ctx.beginPath();
-  ctx.ellipse(m.cx, craterTopY + 6, w * 0.22, 10, 0, 0, Math.PI * 2);
-  ctx.fillStyle = "#FF6F00";
-  ctx.fill();
-
-  // Lava drips down sides
-  const lavaDrips: [number, number, number][] = [
-    [m.cx - w * 0.12, craterTopY, 50],
-    [m.cx + w * 0.08, craterTopY, 70],
-    [m.cx + w * 0.2, craterTopY, 40],
-  ];
+  // Lava drips down the sides
   ctx.fillStyle = "#FF6D00";
-  lavaDrips.forEach(([lx, ly, llen]) => {
+  ([[-10, 22], [3, 32], [11, 16]] as const).forEach(([lx, len]) => {
+    const x = u * lx;
+    const l = u * len * (1 + power * 0.5);
     ctx.beginPath();
-    ctx.moveTo(lx - 6, ly);
-    ctx.bezierCurveTo(lx - 8, ly + llen * 0.5, lx + 4, ly + llen * 0.8, lx + 2, ly + llen);
-    ctx.bezierCurveTo(lx + 8, ly + llen * 0.8, lx + 12, ly + llen * 0.5, lx + 8, ly);
+    ctx.moveTo(x - u * 3, craterY);
+    ctx.bezierCurveTo(x - u * 4, craterY + l * 0.5, x + u * 2, craterY + l * 0.8, x + u, craterY + l);
+    ctx.bezierCurveTo(x + u * 4, craterY + l * 0.8, x + u * 6, craterY + l * 0.5, x + u * 4, craterY);
     ctx.closePath();
     ctx.fill();
   });
 
-  // Smoke / eruption puffs on top if mouth open
-  if (m.mouthOpenRatio > 0.25) {
-    ctx.globalAlpha = 0.55;
-    const puffs: [number, number, number][] = [
-      [m.cx, craterTopY - 28, 20],
-      [m.cx - 18, craterTopY - 50, 15],
-      [m.cx + 14, craterTopY - 55, 18],
-      [m.cx, craterTopY - 72, 13],
-    ];
-    puffs.forEach(([px, py, pr]) => {
+  // Crater with a pulsing lava glow
+  ctx.beginPath();
+  ctx.ellipse(0, craterY, craterHalf, u * 5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "#3E2723";
+  ctx.fill();
+  const glow = 0.75 + Math.sin(m.time * 5) * 0.25;
+  const lava = ctx.createRadialGradient(0, craterY, 0, 0, craterY, craterHalf);
+  lava.addColorStop(0, "#FFEB3B");
+  lava.addColorStop(0.5, "#FF9100");
+  lava.addColorStop(1, "rgba(255,61,0,0)");
+  ctx.globalAlpha = glow;
+  ctx.beginPath();
+  ctx.ellipse(0, craterY + u, craterHalf * 0.85, u * 3.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = lava;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // ERUPTION — lava blobs arc out of the crater
+  if (open) {
+    const blobs = 9;
+    for (let i = 0; i < blobs; i++) {
+      const p = (m.time * 1.3 + i / blobs) % 1;
+      const vx = (i / (blobs - 1) - 0.5) * u * 70;
+      const rise = u * (60 + (i % 3) * 18) * (0.6 + power);
+      const x = vx * p;
+      const y = craterY - (rise * 4 * p * (1 - p));
       ctx.beginPath();
-      ctx.arc(px, py, pr, 0, Math.PI * 2);
-      ctx.fillStyle = "#B0BEC5";
+      ctx.arc(x, y, u * (3.5 + (i % 2) * 1.5) * (1 - p * 0.4), 0, Math.PI * 2);
+      ctx.fillStyle = i % 2 === 0 ? "#FF3D00" : "#FFAB00";
       ctx.fill();
-    });
-    ctx.globalAlpha = 1;
+    }
   }
 
   ctx.restore();

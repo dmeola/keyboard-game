@@ -1,30 +1,82 @@
 import type { FaceMetrics } from "../faceMetrics";
+import { headTop, chinY, faceRx } from "./shared";
 
 export function drawKiteFilter(
   ctx: CanvasRenderingContext2D,
   m: FaceMetrics
 ): void {
   ctx.save();
-  const hw = m.faceWidth * 0.62;
-  const hh = m.faceHeight * 0.68;
+  const u = m.u;
 
-  const topY = m.cy - hh;
-  const botY = m.cy + hh;
-  const leftX = m.cx - hw;
-  const rightX = m.cx + hw;
+  // Kite flies above and to the right of the head; opening the mouth "blows"
+  // it higher and makes it flutter faster
+  const gust = m.mouthOpenRatio > 0.3 ? m.mouthOpenRatio : 0;
+  const speed = 2 + gust * 4;
+  const kx = faceRx(m) + u * 30 + Math.sin(m.time * 0.9) * u * 4;
+  const ky = headTop(m) - u * 10 - gust * u * 12 + Math.sin(m.time * 1.3) * u * 3;
+  const hw = u * 18;
+  const hh = u * 26;
+  const tilt = 0.25 + Math.sin(m.time * speed) * 0.08;
 
-  // Fill quadrants with different colors
-  const quadColors = ["#FF9E98", "#FDD835", "#4FC3F7", "#A5D6A7"];
-  const quads: [number, number, number, number][] = [
-    [m.cx, topY, rightX, m.cy],
-    [rightX, m.cy, m.cx, botY],
-    [m.cx, botY, leftX, m.cy],
-    [leftX, m.cy, m.cx, topY],
-  ];
+  // String from the kite down to beside the chin
+  const handX = faceRx(m) + u * 12;
+  const handY = chinY(m);
+  ctx.beginPath();
+  ctx.moveTo(kx, ky + hh * 0.2);
+  ctx.quadraticCurveTo(kx + u * 18, (ky + handY) / 2, handX, handY);
+  ctx.strokeStyle = "rgba(255,255,255,0.9)";
+  ctx.lineWidth = u * 0.8;
+  ctx.stroke();
 
-  quads.forEach(([x1, y1, x2, y2], i) => {
+  ctx.save();
+  ctx.translate(kx, ky);
+  ctx.rotate(tilt);
+
+  // Tail with fluttering bows
+  const tailLen = u * 50;
+  const tailPoint = (t: number) => ({
+    x: Math.sin(m.time * speed + t * 5) * u * 6 * t,
+    y: hh + t * tailLen,
+  });
+  ctx.beginPath();
+  ctx.moveTo(0, hh);
+  for (let i = 1; i <= 12; i++) {
+    const p = tailPoint(i / 12);
+    ctx.lineTo(p.x, p.y);
+  }
+  ctx.strokeStyle = "#FF6B63";
+  ctx.lineWidth = u * 1;
+  ctx.stroke();
+
+  const bowColors = ["#FDD835", "#4FC3F7", "#FF6B88"];
+  [0.3, 0.62, 0.95].forEach((t, i) => {
+    const p = tailPoint(t);
+    const flap = 0.4 + Math.sin(m.time * speed * 1.5 + i) * 0.25;
+    ctx.fillStyle = bowColors[i];
+    [-1, 1].forEach((side) => {
+      ctx.beginPath();
+      ctx.ellipse(p.x + side * u * 4, p.y, u * 4.5, u * 2.5, side * flap, 0, Math.PI * 2);
+      ctx.fill();
+    });
     ctx.beginPath();
-    ctx.moveTo(m.cx, m.cy);
+    ctx.arc(p.x, p.y, u * 1.6, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fill();
+  });
+
+  // Kite body: four coloured quadrants (top point is shorter, like a real kite)
+  const top = -hh * 0.75;
+  const quadColors = ["#FF9E98", "#FDD835", "#4FC3F7", "#A5D6A7"];
+  const corners: [number, number][] = [
+    [0, top],
+    [hw, 0],
+    [0, hh],
+    [-hw, 0],
+  ];
+  corners.forEach(([x1, y1], i) => {
+    const [x2, y2] = corners[(i + 1) % 4];
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
     ctx.lineTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.closePath();
@@ -32,52 +84,39 @@ export function drawKiteFilter(
     ctx.fill();
   });
 
-  // Kite border
+  // Border and cross spars
   ctx.beginPath();
-  ctx.moveTo(m.cx, topY);
-  ctx.lineTo(rightX, m.cy);
-  ctx.lineTo(m.cx, botY);
-  ctx.lineTo(leftX, m.cy);
+  corners.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
   ctx.closePath();
   ctx.strokeStyle = "#FF6B63";
-  ctx.lineWidth = 3;
+  ctx.lineWidth = u * 1.4;
+  ctx.lineJoin = "round";
   ctx.stroke();
-
-  // Cross ribbons
   ctx.beginPath();
-  ctx.moveTo(m.cx, topY);
-  ctx.lineTo(m.cx, botY);
-  ctx.moveTo(leftX, m.cy);
-  ctx.lineTo(rightX, m.cy);
-  ctx.strokeStyle = "rgba(255,255,255,0.6)";
-  ctx.lineWidth = 2;
+  ctx.moveTo(0, top);
+  ctx.lineTo(0, hh);
+  ctx.moveTo(-hw, 0);
+  ctx.lineTo(hw, 0);
+  ctx.strokeStyle = "rgba(255,255,255,0.7)";
+  ctx.lineWidth = u * 0.9;
   ctx.stroke();
 
-  // Tail with bows
-  ctx.beginPath();
-  ctx.moveTo(m.cx, botY);
-  ctx.bezierCurveTo(m.cx + 30, botY + 30, m.cx - 20, botY + 60, m.cx + 10, botY + 90);
-  ctx.strokeStyle = "#FF6B63";
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  ctx.restore();
 
-  // Bows on tail
-  const bowColors = ["#FDD835", "#4FC3F7", "#FF6B88"];
-  const bowPositions: [number, number][] = [[0, 30], [10, 60], [-5, 90]];
-  bowPositions.forEach(([bx, by], i) => {
-    ctx.beginPath();
-    ctx.ellipse(m.cx + bx - 8, botY + by, 9, 5, -0.5, 0, Math.PI * 2);
-    ctx.fillStyle = bowColors[i % bowColors.length];
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(m.cx + bx + 8, botY + by, 9, 5, 0.5, 0, Math.PI * 2);
-    ctx.fillStyle = bowColors[i % bowColors.length];
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(m.cx + bx, botY + by, 4, 0, Math.PI * 2);
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fill();
-  });
+  // Wind swirls when the child blows
+  if (gust > 0) {
+    ctx.strokeStyle = `rgba(255,255,255,${0.4 + gust * 0.4})`;
+    ctx.lineWidth = u * 1.2;
+    ctx.lineCap = "round";
+    [0, 1, 2].forEach((i) => {
+      const wy = ky + u * (i * 9 - 6);
+      const wx = kx - hw - u * (14 + i * 4);
+      ctx.beginPath();
+      ctx.moveTo(wx - u * 12, wy);
+      ctx.quadraticCurveTo(wx, wy - u * 4, wx + u * 6, wy);
+      ctx.stroke();
+    });
+  }
 
   ctx.restore();
 }

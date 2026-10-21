@@ -3,12 +3,6 @@ export type LetterEntry = {
   phoneme: string;
   emoji: string;
   color: string;
-  filterTheme: {
-    shape: string;
-    primaryColor: string;
-    accentColor: string;
-    eyeColor: string;
-  };
 };
 
 export type NumberEntry = {
